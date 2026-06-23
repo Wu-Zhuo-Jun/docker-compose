@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+langchain
+langchain-core
+langchain-openai
+langchain-community
+rich
+python-multipart
+httpx
+chromadb>=0.5.0
+python-dotenv==1.0.0
+python-docx>=1.0.0
+langchain-text-splitters>=1.0.0
