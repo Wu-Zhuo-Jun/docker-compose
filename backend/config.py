@@ -14,15 +14,30 @@
 """
 
 import os
+from pathlib import Path
 
-# DeepSeek API Key
-os.environ["OPENAI_API_KEY"] = "sk-e6d2f16fbdd5462ea26a0d8202e843fc"
+# 加载 .env 文件（项目根目录）
+env_path = Path(__file__).parent.parent / ".env"
+if env_path.exists():
+    with open(env_path) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, value = line.split("=", 1)
+                os.environ.setdefault(key.strip(), value.strip())
+
+# DeepSeek API Key - 必须通过环境变量设置
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+if not DEEPSEEK_API_KEY:
+    raise ValueError("请设置 DEEPSEEK_API_KEY 环境变量")
+
+os.environ["OPENAI_API_KEY"] = DEEPSEEK_API_KEY
 
 # ChromaDB 配置
 CHROMA_HOST = os.getenv("VECTOR_DB_HOST", "chromadb")
 CHROMA_PORT = os.getenv("VECTOR_DB_PORT", "8000")
 
 # LLM 配置
-LLM_API_KEY = os.getenv("DEEPSEEK_API_KEY", "sk-e6d2f16fbdd5462ea26a0d8202e843fc")
+LLM_API_KEY = DEEPSEEK_API_KEY
 LLM_API_BASE = os.getenv("DEEPSEEK_API_BASE", "https://api.deepseek.com")
 LLM_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")

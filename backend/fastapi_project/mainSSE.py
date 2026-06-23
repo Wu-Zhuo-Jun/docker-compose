@@ -45,7 +45,12 @@ import uvicorn
 # 环境配置
 # ============================================================================
 
-os.environ["OPENAI_API_KEY"] = "sk-e6d2f16fbdd5462ea26a0d8202e843fc"
+# 获取 API Key
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+if not DEEPSEEK_API_KEY:
+    raise ValueError("请设置 DEEPSEEK_API_KEY 环境变量")
+
+os.environ["OPENAI_API_KEY"] = DEEPSEEK_API_KEY
 
 model = init_chat_model(
     model="deepseek-chat",

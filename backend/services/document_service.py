@@ -29,6 +29,11 @@ import os
 
 from config import CHROMA_HOST, CHROMA_PORT, LLM_API_KEY, LLM_API_BASE, LLM_MODEL
 
+# 获取 API Key
+_deepseek_api_key = os.getenv("DEEPSEEK_API_KEY")
+if not _deepseek_api_key:
+    raise ValueError("请设置 DEEPSEEK_API_KEY 环境变量")
+
 
 # ============================================================================
 # ChromaDB 客户端管理
@@ -63,7 +68,7 @@ def get_embeddings():
     return OpenAIEmbeddings(
         model="text-embedding-3-small",
         openai_api_base="https://api.deepseek.com",
-        openai_api_key="sk-e6d2f16fbdd5462ea26a0d8202e843fc",
+        openai_api_key=_deepseek_api_key,
     )
 
 
