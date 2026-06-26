@@ -21,13 +21,14 @@ from docx import Document
 from docx.text.paragraph import Paragraph
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document as LCDocument
-from langchain_openai import OpenAIEmbeddings
 from langchain_openai import ChatOpenAI
+from langchain_chroma import Chroma
+from langchain_huggingface import HuggingFaceEmbeddings
 import chromadb
 from chromadb.config import Settings
 import os
 
-from config import CHROMA_HOST, CHROMA_PORT, LLM_API_KEY, LLM_API_BASE, LLM_MODEL
+from config import LLM_API_KEY, LLM_API_BASE, LLM_MODEL
 
 # 获取 API Key
 _deepseek_api_key = os.getenv("DEEPSEEK_API_KEY")
@@ -39,21 +40,28 @@ if not _deepseek_api_key:
 # ChromaDB 客户端管理
 # ============================================================================
 
-_chroma_client: Optional[chromadb.PersistentClient] = None
+_chroma_client: Optional[Chroma] = None
 
 
-def get_chroma_client() -> chromadb.PersistentClient:
-    """获取 ChromaDB 客户端（单例）"""
+def get_chroma_client() -> Chroma:
+    """获取 Chroma 向量库客户端（单例）"""
     global _chroma_client
     if _chroma_client is None:
         persist_dir = os.environ.get("CHROMA_PERSIST_DIR", "/app/chroma_data")
         os.makedirs(persist_dir, exist_ok=True)
-        _chroma_client = chromadb.PersistentClient(
+        embeddings = get_embeddings()
+        ## 数据持续到磁盘而非内存
+        client = chromadb.PersistentClient(
             path=persist_dir,
             settings=Settings(
                 anonymized_telemetry=False,
                 allow_reset=True,
             ),
+        )
+        _chroma_client = Chroma(
+            client=client,
+            collection_name="documents",
+            embedding_function=embeddings,
         )
     return _chroma_client
 
@@ -64,11 +72,20 @@ def get_chroma_client() -> chromadb.PersistentClient:
 
 
 def get_embeddings():
-    """获取 Embedding 函数（使用 DeepSeek）"""
-    return OpenAIEmbeddings(
-        model="text-embedding-3-small",
-        openai_api_base="https://api.deepseek.com",
-        openai_api_key=_deepseek_api_key,
+    """获取 Embedding 函数（本地 BAAI/bge-small-zh-v1.5，中文语义检索）"""
+    model_name = os.environ.get(
+        "EMBEDDING_MODEL",
+        "BAAI/bge-small-zh-v1.5",
+    )
+    cache_dir = os.environ.get("EMBEDDING_CACHE_DIR", "/app/models")
+    os.makedirs(cache_dir, exist_ok=True)
+    return HuggingFaceEmbeddings(
+        model_name=model_name,
+        cache_folder=cache_dir,
+        model_kwargs={"device": "cpu"},  # 使用CPU进行推理
+        encode_kwargs={
+            "normalize_embeddings": True
+        },  # L2 归一化，使余弦相似度等价于内积，提升检索效率
     )
 
 
@@ -248,54 +265,40 @@ def upload_document(file_content: bytes, filename: str) -> Dict[str, Any]:
     # 2. 语义分块
     langchain_docs = semantic_chunk_documents(full_text)
 
-    # 3. 获取 ChromaDB 集合
-    client = get_chroma_client()
-    collection_name = "documents"
-
-    try:
-        collection = client.get_collection(name=collection_name)
-    except Exception:
-        # 集合不存在则创建
-        embeddings = get_embeddings()
-        collection = client.create_collection(
-            name=collection_name,
-            embedding_function=embeddings.embed_documents,
-            metadata={"description": "Word documents chunks"},
-        )
+    # 3. 获取 ChromaDB 向量库
+    vectorstore = get_chroma_client()
 
     # 4. 准备数据并存储
     doc_id = str(uuid.uuid4())
-    documents = []
-    metadatas = []
-    ids = []
+    lc_documents = []
 
     for idx, doc in enumerate(langchain_docs):
-        chunk_id = f"{doc_id}_{idx}"
-        documents.append(doc.page_content)
-        metadatas.append(
-            {
-                "source": filename,
-                "doc_id": doc_id,
-                "chunk_index": idx,
-                "total_chunks": len(langchain_docs),
-            }
+        lc_documents.append(
+            LCDocument(
+                page_content=doc.page_content,
+                metadata={
+                    "source": filename,
+                    "doc_id": doc_id,
+                    "chunk_index": idx,
+                    "total_chunks": len(langchain_docs),
+                },
+            )
         )
-        ids.append(chunk_id)
 
-    collection.add(documents=documents, metadatas=metadatas, ids=ids)
+    vectorstore.add_documents(documents=lc_documents)
 
     return {
         "doc_id": doc_id,
         "filename": filename,
-        "chunk_count": len(documents),
+        "chunk_count": len(lc_documents),
         "chunks": [
             {
-                "id": chunk_id,
+                "id": f"{doc_id}_{idx}",
                 "content": doc.page_content[:200] + "..."
                 if len(doc.page_content) > 200
                 else doc.page_content,
             }
-            for chunk_id, doc in zip(ids, langchain_docs)
+            for idx, doc in enumerate(langchain_docs)
         ],
     }
 
@@ -319,40 +322,28 @@ def search_documents(
     Returns:
         {"results": [...], "query": str}
     """
-    client = get_chroma_client()
+    vectorstore = get_chroma_client()
 
     try:
-        collection = client.get_collection(name="documents")
+        docs = vectorstore.similarity_search_with_score(
+            query=query,
+            k=top_k,
+            filter={"doc_id": doc_id} if doc_id else None,
+        )
     except Exception:
         return {"results": [], "query": query, "message": "No documents found"}
 
-    # 构建查询条件
-    where_filter = {"doc_id": doc_id} if doc_id else None
-
-    # 执行相似度搜索
-    results = collection.query(
-        query_texts=[query],
-        n_results=top_k,
-        where=where_filter,
-        include=["documents", "metadatas", "distances"],
-    )
-
     # 格式化结果
     formatted_results = []
-    if results["documents"] and results["documents"][0]:
-        for i, doc in enumerate(results["documents"][0]):
-            formatted_results.append(
-                {
-                    "content": doc,
-                    "metadata": results["metadatas"][0][i]
-                    if results["metadatas"]
-                    else {},
-                    "distance": results["distances"][0][i]
-                    if results["distances"]
-                    else 0,
-                    "chunk_id": results["ids"][0][i] if results["ids"] else "",
-                }
-            )
+    for doc, score in docs:
+        formatted_results.append(
+            {
+                "content": doc.page_content,
+                "metadata": doc.metadata,
+                "distance": 1 - score,  # 转为距离
+                "chunk_id": doc.metadata.get("chunk_id", ""),
+            }
+        )
 
     return {
         "query": query,
@@ -377,32 +368,25 @@ def retrieve_and_group(query: str, top_k: int = 10) -> Dict[str, Any]:
     Returns:
         {"groups": {doc_name: [chunks]}, "all_chunks": [...]}
     """
-    client = get_chroma_client()
+    vectorstore = get_chroma_client()
 
     try:
-        collection = client.get_collection(name="documents")
+        docs = vectorstore.similarity_search_with_score(query=query, k=top_k)
     except Exception:
         return {"groups": {}, "all_chunks": [], "message": "No documents found"}
 
-    # 执行相似度搜索，获取更多结果
-    results = collection.query(
-        query_texts=[query],
-        n_results=top_k,
-        include=["documents", "metadatas", "distances"],
-    )
-
     # 解析结果
     all_chunks = []
-    if results["documents"] and results["documents"][0]:
-        for i, doc in enumerate(results["documents"][0]):
-            metadata = results["metadatas"][0][i] if results["metadatas"] else {}
-            all_chunks.append({
-                "content": doc,
-                "source": metadata.get("source", "unknown"),
-                "doc_id": metadata.get("doc_id", ""),
-                "distance": results["distances"][0][i] if results["distances"] else 0,
-                "chunk_id": results["ids"][0][i] if results["ids"] else "",
-            })
+    for doc, score in docs:
+        all_chunks.append(
+            {
+                "content": doc.page_content,
+                "source": doc.metadata.get("source", "unknown"),
+                "doc_id": doc.metadata.get("doc_id", ""),
+                "distance": 1 - score,
+                "chunk_id": f"{doc.metadata.get('doc_id', '')}_{doc.metadata.get('chunk_index', 0)}",
+            }
+        )
 
     # 按文档分组
     groups = {}
@@ -579,22 +563,21 @@ def qa_search(query: str, top_k: int = 10) -> Dict[str, Any]:
 
 def list_documents() -> List[Dict[str, Any]]:
     """列出所有已上传的文档"""
-    client = get_chroma_client()
+    vectorstore = get_chroma_client()
 
     try:
-        collection = client.get_collection(name="documents")
+        all_docs = vectorstore.get(include=["metadatas"])
     except Exception:
         return []
 
-    # 获取所有唯一的文档
-    all_data = collection.get(include=["metadatas"])
-
-    if not all_data or not all_data.get("ids"):
+    if not all_docs or not all_docs.get("ids"):
         return []
 
     # 按 doc_id 分组
     docs_map = {}
-    for i, metadata in enumerate(all_data.get("metadatas", [])):
+    for i, (doc_id_val, metadata) in enumerate(
+        zip(all_docs["ids"], all_docs.get("metadatas", []))
+    ):
         if metadata:
             doc_id = metadata.get("doc_id")
             if doc_id and doc_id not in docs_map:
@@ -605,31 +588,31 @@ def list_documents() -> List[Dict[str, Any]]:
                     "chunk_ids": [],
                 }
             if doc_id:
-                docs_map[doc_id]["chunk_ids"].append(all_data["ids"][i])
+                docs_map[doc_id]["chunk_ids"].append(doc_id_val)
 
     return list(docs_map.values())
 
 
 def delete_document(doc_id: str) -> Dict[str, Any]:
     """删除指定文档的所有块"""
-    client = get_chroma_client()
+    vectorstore = get_chroma_client()
 
     try:
-        collection = client.get_collection(name="documents")
+        all_docs = vectorstore.get(include=["metadatas"])
     except Exception:
         return {"success": False, "message": "Collection not found"}
 
     # 获取该文档的所有块 ID
-    all_data = collection.get(include=["metadatas"])
-
     chunk_ids = []
-    for i, metadata in enumerate(all_data.get("metadatas", [])):
+    for i, (doc_id_val, metadata) in enumerate(
+        zip(all_docs["ids"], all_docs.get("metadatas", []))
+    ):
         if metadata and metadata.get("doc_id") == doc_id:
-            chunk_ids.append(all_data["ids"][i])
+            chunk_ids.append(doc_id_val)
 
     if not chunk_ids:
         return {"success": False, "message": "Document not found"}
 
-    collection.delete(ids=chunk_ids)
+    vectorstore.delete(ids=chunk_ids)
 
     return {"success": True, "deleted_chunks": len(chunk_ids)}

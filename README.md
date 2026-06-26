@@ -277,3 +277,6 @@ docker cp chromadb_service:/chroma/chroma ./backup_chroma
 ```bash
 docker-compose down && docker-compose up -d --build
 ```
+
+Embedding模型需要从hugFace拉去某些镜像，比较久，可以自己从国内镜像源拉取
+docker exec fastapi_backend python -c "from huggingface_hub import snapshot_download; snapshot_download('BAAI/bge-small-zh-v1.5', cache_dir='/app/models', endpoint='https://hf-mirror.com')"
