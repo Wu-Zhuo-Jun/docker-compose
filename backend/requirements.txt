@@ -17,3 +17,4 @@ python-docx>=1.0.0
 langchain-text-splitters>=1.0.0
 sentence-transformers>=2.7.0
 torch>=2.0.0 --index-url https://download.pytorch.org/whl/cpu
+langgraph>=0.2.0

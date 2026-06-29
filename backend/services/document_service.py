@@ -357,53 +357,6 @@ def search_documents(
 # ============================================================================
 
 
-def retrieve_and_group(query: str, top_k: int = 10) -> Dict[str, Any]:
-    """
-    第一阶段：检索并按文档分组
-
-    Args:
-        query: 查询文本
-        top_k: 检索数量（不限制，让 LLM 做筛选）
-
-    Returns:
-        {"groups": {doc_name: [chunks]}, "all_chunks": [...]}
-    """
-    vectorstore = get_chroma_client()
-
-    try:
-        docs = vectorstore.similarity_search_with_score(query=query, k=top_k)
-    except Exception:
-        return {"groups": {}, "all_chunks": [], "message": "No documents found"}
-
-    # 解析结果
-    all_chunks = []
-    for doc, score in docs:
-        all_chunks.append(
-            {
-                "content": doc.page_content,
-                "source": doc.metadata.get("source", "unknown"),
-                "doc_id": doc.metadata.get("doc_id", ""),
-                "distance": 1 - score,
-                "chunk_id": f"{doc.metadata.get('doc_id', '')}_{doc.metadata.get('chunk_index', 0)}",
-            }
-        )
-
-    # 按文档分组
-    groups = {}
-    for chunk in all_chunks:
-        source = chunk["source"]
-        if source not in groups:
-            groups[source] = []
-        groups[source].append(chunk)
-
-    return {
-        "groups": groups,
-        "all_chunks": all_chunks,
-        "total_chunks": len(all_chunks),
-        "total_docs": len(groups),
-    }
-
-
 def get_llm_client() -> ChatOpenAI:
     """获取 LLM 客户端（单例）"""
     return ChatOpenAI(
@@ -447,112 +400,53 @@ def build_context_from_chunks(all_chunks: List[Dict]) -> str:
     return "\n".join(context_parts)
 
 
-def generate_answer_with_llm(query: str, chunks: List[Dict]) -> Dict[str, Any]:
-    """
-    第二阶段：使用 LLM 整合检索结果生成答案
-
-    Args:
-        query: 用户问题
-        chunks: 检索到的相关 chunks
-
-    Returns:
-        {"answer": str, "sources": [...], "used_chunks": int}
-    """
-    if not chunks:
-        return {
-            "answer": "抱歉，没有找到与您问题相关的文档内容。请尝试上传相关文档或调整问题表述。",
-            "sources": [],
-            "used_chunks": 0,
-        }
-
-    # 构建上下文
-    context = build_context_from_chunks(chunks)
-
-    # 构建 Prompt（直接使用字符串）
-    prompt = f"""你是一个专业的技术文档问答助手。你的任务是根据提供的文档片段回答用户的问题。
-
-## 重要规则：
-1. 只基于提供的文档内容回答，不要编造信息
-2. 如果文档中包含多个来源的信息，可以进行对比分析
-3. 如果某个问题涉及的参数在多个文档中都有提到，请明确指出每个来源的具体数值
-4. 如果文档中没有相关信息，明确告知用户"根据当前文档无法回答此问题"
-5. 回答要清晰、专业，使用列表或表格来组织对比信息（当涉及多文档对比时）
-
-## 文档片段：
-{context}
-
-## 用户问题：
-{query}
-
-## 回答要求：
-- 直接回答问题
-- 指出信息来源
-- 如果涉及对比，给出对比表格
-"""
-
-    # 调用 LLM
-    llm = get_llm_client()
-
-    try:
-        response = llm.invoke(prompt)
-        answer = response.content
-    except Exception as e:
-        answer = f"抱歉，生成回答时出现错误：{str(e)}"
-
-    # 提取来源信息
-    sources = list(set([chunk.get("source", "未知") for chunk in chunks]))
-
-    return {
-        "answer": answer,
-        "sources": sources,
-        "used_chunks": len(chunks),
-    }
-
-
 def qa_search(query: str, top_k: int = 10) -> Dict[str, Any]:
     """
-    问答式搜索（两阶段检索 + LLM 整合）
+    问答式搜索（LangGraph 版：查询改写 + 相关性评估 + 最多 1 次重检索）
 
-    流程：
-    1. 检索：向量搜索获取相关 chunks
-    2. 分组：按文档分组
-    3. 整合：LLM 分析并生成答案
+    工作流：
+        rewrite -> retrieve -> grade ->[should_retry]-> rewrite / generate -> END
+
+    对外输出形状与旧实现完全一致，前端无需改动。
 
     Args:
         query: 用户问题
-        top_k: 检索数量
+        top_k: 检索数量（当前 MVP 固定使用 10）
 
     Returns:
         {
-            "answer": str,           # LLM 生成的回答
-            "sources": [...],         # 涉及的文档列表
-            "used_chunks": int,       # 使用的 chunk 数量
-            "groups": {...},          # 按文档分组的结果（供前端展示）
+            "answer": str,
+            "sources": [...],
+            "used_chunks": int,
+            "groups": {...},
+            "query": str,
+            "total_retrieved": int,
+            "total_docs": int,
         }
     """
-    # 第一阶段：检索并分组
-    retrieval_result = retrieve_and_group(query, top_k)
+    # 延迟导入，避免循环依赖（rag_graph 在加载时会触发本模块导入）
+    from services.rag_graph import rag_graph
 
-    if retrieval_result["total_chunks"] == 0:
-        return {
-            "answer": "抱歉，没有找到与您问题相关的文档内容。请尝试上传相关文档或调整问题表述。",
-            "sources": [],
-            "used_chunks": 0,
-            "groups": {},
-            "query": query,
-        }
+    initial_state = {
+        "query": query,
+        "retry_count": 0,
+        "rewritten_query": "",
+        "retrieved_chunks": [],
+        "relevant_chunks": [],
+        "is_relevant": False,
+    }
 
-    # 第二阶段：LLM 整合
-    llm_result = generate_answer_with_llm(query, retrieval_result["all_chunks"])
+    # LangGraph invoke 是同步的；FastAPI 在线程池中运行，无需 asyncio
+    final_state = rag_graph.invoke(initial_state)
 
     return {
-        "answer": llm_result["answer"],
-        "sources": llm_result["sources"],
-        "used_chunks": llm_result["used_chunks"],
-        "groups": retrieval_result["groups"],  # 返回分组信息供前端展示
+        "answer": final_state.get("answer", ""),
+        "sources": final_state.get("sources", []),
+        "used_chunks": final_state.get("used_chunks", 0),
+        "groups": final_state.get("groups", {}),
         "query": query,
-        "total_retrieved": retrieval_result["total_chunks"],
-        "total_docs": retrieval_result["total_docs"],
+        "total_retrieved": final_state.get("total_retrieved", 0),
+        "total_docs": final_state.get("total_docs", 0),
     }
 
 
