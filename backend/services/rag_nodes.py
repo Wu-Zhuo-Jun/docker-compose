@@ -26,11 +26,12 @@ from services.document_service import (
     get_llm_client,
     build_context_from_chunks,
 )
-
+from rich.pretty import pprint
 
 # ============================================================================
 # 节点 1：查询改写
 # ============================================================================
+
 
 def _rewriter_llm() -> ChatOpenAI:
     """改写专用 LLM（低温度）"""
@@ -50,8 +51,12 @@ def query_rewriter_node(state: Dict[str, Any]) -> Dict[str, Any]:
         "保留原意，去掉口语化表达，输出不超过 30 字。仅输出改写结果。\n"
         f"用户问题：{query}\n改写："
     )
+    print("prompt--------")
+    print(query)
     try:
         rewritten = _rewriter_llm().invoke(prompt).content.strip()
+        pprint("rewritten--------")
+        pprint(rewritten)
         if not rewritten:
             rewritten = query
     except Exception:
@@ -63,6 +68,7 @@ def query_rewriter_node(state: Dict[str, Any]) -> Dict[str, Any]:
 # ============================================================================
 # 节点 2：向量检索
 # ============================================================================
+
 
 def retriever_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """向量检索，复用现有 similarity_search_with_score"""
@@ -96,6 +102,7 @@ def retriever_node(state: Dict[str, Any]) -> Dict[str, Any]:
 # ============================================================================
 # 节点 3：相关性评估
 # ============================================================================
+
 
 def relevance_grader_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """LLM 评估每个 chunk 的相关性，过滤掉无关内容"""
@@ -201,6 +208,7 @@ def answer_generator_node(state: Dict[str, Any]) -> Dict[str, Any]:
 # ============================================================================
 # 条件边：决定重检索还是生成答案
 # ============================================================================
+
 
 def should_retry(state: Dict[str, Any]) -> str:
     """条件边：决定是回到 rewrite 还是进入 generate
