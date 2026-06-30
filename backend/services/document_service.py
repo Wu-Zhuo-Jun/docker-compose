@@ -5,7 +5,7 @@
 =============================================================================
 
 功能:
-- 解析 Word 文档 (.docx)
+- 解析 Word 文档 (.docx) 和纯文本 (.txt)
 - 语义分块 (Semantic Chunking)
 - 向量化存储到 ChromaDB
 - 两阶段检索 + LLM 整合
@@ -90,8 +90,76 @@ def get_embeddings():
 
 
 # ============================================================================
-# Word 文档解析
+# 文档解析（支持 docx 和 txt）
 # ============================================================================
+
+
+def parse_txt_document(file_content: bytes) -> Tuple[str, List[Dict[str, Any]]]:
+    """
+    解析 txt 纯文本文件
+
+    Args:
+        file_content: 文件二进制内容
+
+    Returns:
+        (full_text, content_items):
+            - full_text: 完整文本内容
+            - content_items: 按段落拆分的列表，每项包含 text 和 metadata
+    """
+    text = file_content.decode("utf-8")
+    lines = text.split("\n")
+    content_items = []
+    current_para = []
+    current_headings = []
+
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            if current_para:
+                content_items.append({
+                    "text": "\n".join(current_para),
+                    "type": "paragraph",
+                    "headings": list(current_headings),
+                })
+                current_para = []
+            continue
+
+        # 检测标题行（以 # 开头 或 全大写 或 短行+冒号结尾）
+        is_heading = (
+            stripped.startswith("#")
+            or (len(stripped) < 50 and stripped.isupper())
+            or (len(stripped) < 60 and stripped.endswith(":") and not stripped.endswith("::"))
+        )
+
+        if is_heading:
+            if current_para:
+                content_items.append({
+                    "text": "\n".join(current_para),
+                    "type": "paragraph",
+                    "headings": list(current_headings),
+                })
+                current_para = []
+            content_items.append({
+                "text": stripped,
+                "type": "heading",
+                "level": 1 if stripped.startswith("#") else 2,
+                "headings": list(current_headings),
+            })
+            if not stripped.startswith("#"):
+                current_headings.append(stripped)
+        else:
+            current_para.append(stripped)
+
+    # 处理最后一段
+    if current_para:
+        content_items.append({
+            "text": "\n".join(current_para),
+            "type": "paragraph",
+            "headings": list(current_headings),
+        })
+
+    full_text = "\n\n".join(item["text"] for item in content_items)
+    return full_text, content_items
 
 
 def extract_heading_chain(
@@ -247,7 +315,7 @@ def semantic_chunk_documents(text: str) -> List[LCDocument]:
 
 def upload_document(file_content: bytes, filename: str) -> Dict[str, Any]:
     """
-    上传并处理 Word 文档
+    上传并处理文档（支持 docx 和 txt）
 
     Args:
         file_content: 文件二进制内容
@@ -256,8 +324,11 @@ def upload_document(file_content: bytes, filename: str) -> Dict[str, Any]:
     Returns:
         {"doc_id": str, "chunk_count": int, "chunks": list}
     """
-    # 1. 解析文档
-    full_text, content_items = parse_word_document(file_content)
+    # 1. 根据文件后缀选择解析方式
+    if filename.lower().endswith(".txt"):
+        full_text, content_items = parse_txt_document(file_content)
+    else:
+        full_text, content_items = parse_word_document(file_content)
 
     if not full_text.strip():
         raise ValueError("文档内容为空")

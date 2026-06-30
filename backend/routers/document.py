@@ -18,7 +18,7 @@ from services.document_service import (
     search_documents,
     qa_search,
     list_documents,
-    delete_document
+    delete_document,
 )
 
 
@@ -32,6 +32,7 @@ router = APIRouter(prefix="/documents", tags=["文档管理"])
 
 class SearchRequest(BaseModel):
     """搜索请求（基础检索）"""
+
     query: str
     top_k: Optional[int] = 5
     doc_id: Optional[str] = None
@@ -39,6 +40,7 @@ class SearchRequest(BaseModel):
 
 class SearchResponse(BaseModel):
     """搜索响应"""
+
     query: str
     results: list
     total: int
@@ -46,23 +48,26 @@ class SearchResponse(BaseModel):
 
 class QASearchRequest(BaseModel):
     """问答式搜索请求"""
+
     query: str
     top_k: Optional[int] = 10  # 默认检索更多结果给 LLM
 
 
 class QASearchResponse(BaseModel):
     """问答式搜索响应"""
-    answer: str           # LLM 生成的回答
-    sources: list         # 涉及的文档列表
-    used_chunks: int      # 使用的 chunk 数量
-    groups: dict          # 按文档分组的结果
+
+    answer: str  # LLM 生成的回答
+    sources: list  # 涉及的文档列表
+    used_chunks: int  # 使用的 chunk 数量
+    groups: dict  # 按文档分组的结果
     query: str
     total_retrieved: int  # 检索到的总 chunk 数
-    total_docs: int       # 涉及的文档数量
+    total_docs: int  # 涉及的文档数量
 
 
 class DocumentListItem(BaseModel):
     """文档列表项"""
+
     doc_id: str
     source: str
     total_chunks: int
@@ -82,10 +87,10 @@ async def upload_document_file(file: UploadFile = File(...)):
     支持 .docx 格式，会自动进行语义分块和向量化存储
     """
     # 检查文件类型
-    if not file.filename.endswith(".docx"):
+    if not file.filename.endswith(".docx") and not file.filename.endswith(".txt"):
         raise HTTPException(
             status_code=400,
-            detail="只支持 .docx 格式的 Word 文档"
+            detail="只支持 .docx 格式的 Word 文档和 .txt 格式的文本文件",
         )
 
     try:
@@ -115,9 +120,7 @@ async def search(request: SearchRequest):
     """
     try:
         result = search_documents(
-            query=request.query,
-            top_k=request.top_k,
-            doc_id=request.doc_id
+            query=request.query, top_k=request.top_k, doc_id=request.doc_id
         )
         return result
     except Exception as e:
@@ -139,10 +142,7 @@ async def qa_search_endpoint(request: QASearchRequest):
         top_k: 检索数量（默认 10）
     """
     try:
-        result = qa_search(
-            query=request.query,
-            top_k=request.top_k
-        )
+        result = qa_search(query=request.query, top_k=request.top_k)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"问答搜索失败: {str(e)}")
