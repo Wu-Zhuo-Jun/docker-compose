@@ -17,6 +17,7 @@ LangGraph RAG 工作流 - 节点函数
 """
 
 from typing import Dict, Any, List
+import json
 
 from langchain_openai import ChatOpenAI
 
@@ -51,12 +52,12 @@ def query_rewriter_node(state: Dict[str, Any]) -> Dict[str, Any]:
         "保留原意，去掉口语化表达，输出不超过 30 字。仅输出改写结果。\n"
         f"用户问题：{query}\n改写："
     )
-    print("prompt--------")
-    print(query)
+    # print("prompt--------")
+    # print(query)
     try:
         rewritten = _rewriter_llm().invoke(prompt).content.strip()
-        pprint("rewritten--------")
-        pprint(rewritten)
+        pprint(f"rewritten--------{rewritten}")
+
         if not rewritten:
             rewritten = query
     except Exception:
@@ -74,7 +75,7 @@ def retriever_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """向量检索，复用现有 similarity_search_with_score"""
     vectorstore = get_chroma_client()
     search_query = state.get("rewritten_query") or state["query"]
-
+    print(f"retriever_node--------")
     try:
         docs = vectorstore.similarity_search_with_score(query=search_query, k=10)
         chunks: List[Dict[str, Any]] = [
@@ -105,12 +106,25 @@ def retriever_node(state: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def relevance_grader_node(state: Dict[str, Any]) -> Dict[str, Any]:
-    """LLM 评估每个 chunk 的相关性，过滤掉无关内容"""
+    """LLM 批量评估所有 chunk 的相关性，一次调用完成过滤"""
     query = state["query"]
     chunks = state.get("retrieved_chunks", []) or []
 
     if not chunks:
         return {"relevant_chunks": [], "is_relevant": False}
+
+    # 构建批量评估 prompt
+    chunks_text = "\n\n".join(
+        f"[Chunk {i}] {chunk['content'][:300]}" for i, chunk in enumerate(chunks)
+    )
+    prompt = f"""判断以下每个文档片段是否与问题相关。相关=包含直接回答问题的信息。
+
+问题：{query}
+
+{chunks_text}
+
+请按以下 JSON 格式输出，仅输出 JSON，不要其他内容：
+{{"results": [{{"index": 0, "relevant": true/false}}, ...]}}"""
 
     grader = ChatOpenAI(
         model=LLM_MODEL,
@@ -119,20 +133,17 @@ def relevance_grader_node(state: Dict[str, Any]) -> Dict[str, Any]:
         temperature=0.0,
     )
 
-    relevant: List[Dict[str, Any]] = []
-    for chunk in chunks:
-        prompt = (
-            "判断文档片段是否与问题相关。相关=包含直接回答问题的信息。\n"
-            f"问题：{query}\n文档：{chunk['content'][:500]}\n"
-            "仅输出 YES 或 NO："
-        )
-        try:
-            verdict = grader.invoke(prompt).content.strip().upper()
-            if verdict.startswith("Y"):
-                relevant.append(chunk)
-        except Exception:
-            # 评估失败时保守保留，避免误杀
-            relevant.append(chunk)
+    try:
+        response = grader.invoke(prompt).content.strip()
+
+        # 解析 JSON 结果
+        json_match = response[response.find("{") : response.rfind("}") + 1]
+        data = json.loads(json_match)
+        indices = {r["index"] for r in data.get("results", []) if r.get("relevant")}
+        relevant = [chunks[i] for i in indices if i < len(chunks)]
+    except Exception:
+        # 解析失败时保守保留所有 chunk
+        relevant = list(chunks)
 
     return {"relevant_chunks": relevant, "is_relevant": len(relevant) > 0}
 

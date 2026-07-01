@@ -17,9 +17,11 @@ LangGraph RAG 工作流 - 图构建
 =============================================================================
 """
 
+from backend.services.rag_state import RAGState
+
+
 from langgraph.graph import StateGraph, END
 
-from services.rag_state import RAGState
 from services.rag_nodes import (
     query_rewriter_node,
     retriever_node,
@@ -31,7 +33,12 @@ from services.rag_nodes import (
 
 def build_rag_graph():
     """构建并编译 RAG 工作流图"""
-    workflow = StateGraph(RAGState)
+    workflow = StateGraph[RAGState, None, RAGState, RAGState](RAGState)
+    # 1. State — 共享状态的类型（TypedDict）
+    # 2. LangGraph TypeVar — 暂时未用，通常是旧版 API 遗留
+    # 3. ChainInput — 输入给图的初始状态类型
+    # 4. ChainOutput — 图的最终输出类型
+    # 构造函数的参数：状态类（等同于第 1 个参数）
 
     workflow.add_node("rewrite", query_rewriter_node)
     workflow.add_node("retrieve", retriever_node)

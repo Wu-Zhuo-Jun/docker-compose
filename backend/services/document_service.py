@@ -116,11 +116,13 @@ def parse_txt_document(file_content: bytes) -> Tuple[str, List[Dict[str, Any]]]:
         stripped = line.strip()
         if not stripped:
             if current_para:
-                content_items.append({
-                    "text": "\n".join(current_para),
-                    "type": "paragraph",
-                    "headings": list(current_headings),
-                })
+                content_items.append(
+                    {
+                        "text": "\n".join(current_para),
+                        "type": "paragraph",
+                        "headings": list(current_headings),
+                    }
+                )
                 current_para = []
             continue
 
@@ -128,23 +130,31 @@ def parse_txt_document(file_content: bytes) -> Tuple[str, List[Dict[str, Any]]]:
         is_heading = (
             stripped.startswith("#")
             or (len(stripped) < 50 and stripped.isupper())
-            or (len(stripped) < 60 and stripped.endswith(":") and not stripped.endswith("::"))
+            or (
+                len(stripped) < 60
+                and stripped.endswith(":")
+                and not stripped.endswith("::")
+            )
         )
 
         if is_heading:
             if current_para:
-                content_items.append({
-                    "text": "\n".join(current_para),
-                    "type": "paragraph",
-                    "headings": list(current_headings),
-                })
+                content_items.append(
+                    {
+                        "text": "\n".join(current_para),
+                        "type": "paragraph",
+                        "headings": list(current_headings),
+                    }
+                )
                 current_para = []
-            content_items.append({
-                "text": stripped,
-                "type": "heading",
-                "level": 1 if stripped.startswith("#") else 2,
-                "headings": list(current_headings),
-            })
+            content_items.append(
+                {
+                    "text": stripped,
+                    "type": "heading",
+                    "level": 1 if stripped.startswith("#") else 2,
+                    "headings": list(current_headings),
+                }
+            )
             if not stripped.startswith("#"):
                 current_headings.append(stripped)
         else:
@@ -152,11 +162,13 @@ def parse_txt_document(file_content: bytes) -> Tuple[str, List[Dict[str, Any]]]:
 
     # 处理最后一段
     if current_para:
-        content_items.append({
-            "text": "\n".join(current_para),
-            "type": "paragraph",
-            "headings": list(current_headings),
-        })
+        content_items.append(
+            {
+                "text": "\n".join(current_para),
+                "type": "paragraph",
+                "headings": list(current_headings),
+            }
+        )
 
     full_text = "\n\n".join(item["text"] for item in content_items)
     return full_text, content_items
@@ -300,7 +312,7 @@ def semantic_chunk_documents(text: str) -> List[LCDocument]:
     按段落和字符长度递归分割，保持语义完整性。
     """
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=800,  # 每个块的最大字符数
+        chunk_size=400,  # 每个块的最大字符数
         chunk_overlap=100,  # 块之间的重叠字符数
         separators=["\n\n", "\n", "。", "！", "？", " ", ""],  # 分割符优先级
     )
