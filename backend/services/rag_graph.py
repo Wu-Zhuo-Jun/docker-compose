@@ -17,11 +17,9 @@ LangGraph RAG 工作流 - 图构建
 =============================================================================
 """
 
-from backend.services.rag_state import RAGState
-
-
 from langgraph.graph import StateGraph, END
 
+from services.rag_state import RAGState
 from services.rag_nodes import (
     query_rewriter_node,
     retriever_node,

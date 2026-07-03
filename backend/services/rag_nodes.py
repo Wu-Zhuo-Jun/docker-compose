@@ -75,7 +75,6 @@ def retriever_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """向量检索，复用现有 similarity_search_with_score"""
     vectorstore = get_chroma_client()
     search_query = state.get("rewritten_query") or state["query"]
-    print(f"retriever_node--------")
     try:
         docs = vectorstore.similarity_search_with_score(query=search_query, k=10)
         chunks: List[Dict[str, Any]] = [
@@ -109,14 +108,14 @@ def relevance_grader_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """LLM 批量评估所有 chunk 的相关性，一次调用完成过滤"""
     query = state["query"]
     chunks = state.get("retrieved_chunks", []) or []
-
     if not chunks:
         return {"relevant_chunks": [], "is_relevant": False}
 
     # 构建批量评估 prompt
     chunks_text = "\n\n".join(
-        f"[Chunk {i}] {chunk['content'][:300]}" for i, chunk in enumerate(chunks)
+        f"[Chunk {i}] {chunk['content'][:400]}" for i, chunk in enumerate(chunks)
     )
+    print(f"chunks_text--------{chunks_text}")
     prompt = f"""判断以下每个文档片段是否与问题相关。相关=包含直接回答问题的信息。
 
 问题：{query}
@@ -140,6 +139,7 @@ def relevance_grader_node(state: Dict[str, Any]) -> Dict[str, Any]:
         json_match = response[response.find("{") : response.rfind("}") + 1]
         data = json.loads(json_match)
         indices = {r["index"] for r in data.get("results", []) if r.get("relevant")}
+        print(f"indices--------{indices}")
         relevant = [chunks[i] for i in indices if i < len(chunks)]
     except Exception:
         # 解析失败时保守保留所有 chunk
