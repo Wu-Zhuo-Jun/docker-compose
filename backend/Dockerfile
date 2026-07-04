@@ -14,8 +14,11 @@ RUN mkdir -p /app/models && \
 FROM python:3.10-slim
 WORKDIR /app
 
-# 只复制运行时必需的内容：依赖 + 模型 + 业务代码
+# 只复制运行时必需的内容：依赖 + 可执行入口 + 模型 + 业务代码
+# 注意：uvicorn 等包会把入口脚本装到 /usr/local/bin，必须一并复制，
+# 否则多阶段构建的运行时镜像里 $PATH 找不到 uvicorn。
 COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 COPY --from=builder /app/models /app/models
 
 COPY main.py .
