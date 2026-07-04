@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Input, Button, Card, Typography, Space, Tag, Empty, Spin, Divider, Collapse } from 'antd'
 import { SearchOutlined, RobotOutlined, FileTextOutlined, DatabaseOutlined, DownOutlined } from '@ant-design/icons'
-import { qaSearch, searchDocuments } from '../services/api'
+import { qaSearch, searchDocuments } from '@/services/api'
 
 const { TextArea } = Input
 const { Text, Title, Paragraph } = Typography

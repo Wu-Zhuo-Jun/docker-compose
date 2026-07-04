@@ -1,42 +1,188 @@
+/* Linear recipe — global resets and hairline primitives.
+   The AntD ConfigProvider handles most tokens; this file owns layout primitives
+   the components themselves can't express (gradients, scrollbars, kbd chips). */
+
+:root {
+  --ln-ground: #08090A;
+  --ln-surface-1: #16171C;
+  --ln-surface-2: #1E1F25;
+  --ln-surface-3: #26272E;
+  --ln-hairline: rgba(255,255,255,0.06);
+  --ln-hairline-strong: rgba(255,255,255,0.10);
+  --ln-text: #F7F8F8;
+  --ln-text-muted: #9CA3AF;
+  --ln-text-dim: #6B7280;
+  --ln-accent: #5E6AD2;
+  --ln-accent-surface: rgba(94,106,210,0.10);
+  --ln-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ln-radius-sm: 6px;
+  --ln-radius-md: 12px;
+  --ln-radius-lg: 16px;
+}
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+html, body, #root {
+  height: 100%;
+  background: var(--ln-ground);
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: var(--ln-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-#root {
-  min-height: 100vh;
+/* Subtle ambient gradient at top edge — Linear recipe calls for < 8% opacity mesh. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 480px;
+  pointer-events: none;
+  background: radial-gradient(
+    60% 100% at 50% 0%,
+    rgba(94, 106, 210, 0.06) 0%,
+    rgba(94, 106, 210, 0.02) 40%,
+    transparent 70%
+  );
+  z-index: 0;
 }
 
-.app-container {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-  padding: 40px 20px;
+/* --- Login-page ambient motion ---------------------------------------------
+   Two slow-drifting accent orbs + a fine SVG noise grain, all kept under ~8%
+   opacity per the Linear recipe. The orbs use 45s/55s cycles so they never
+   sync up, which is what makes the background feel alive without being busy.
+   Disabled for users who prefer reduced motion. */
+.login-aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
 }
 
-.content-wrapper {
-  max-width: 1200px;
-  margin: 0 auto;
+.login-aurora::before,
+.login-aurora::after {
+  content: '';
+  position: absolute;
+  width: 720px;
+  height: 720px;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.55;
+  will-change: transform;
 }
 
-.header {
-  text-align: center;
-  margin-bottom: 40px;
+.login-aurora::before {
+  left: -180px;
+  top: -240px;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(94, 106, 210, 0.35) 0%,
+    rgba(94, 106, 210, 0.12) 45%,
+    transparent 70%
+  );
+  animation: lnAuroraA 45s linear infinite;
 }
 
-.header h1 {
-  color: white;
-  font-size: 36px;
+.login-aurora::after {
+  right: -220px;
+  bottom: -260px;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(56, 189, 248, 0.18) 0%,
+    rgba(94, 106, 210, 0.10) 45%,
+    transparent 70%
+  );
+  animation: lnAuroraB 55s linear infinite;
+}
+
+@keyframes lnAuroraA {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  25%  { transform: translate3d(120px, 80px, 0) scale(1.08); }
+  50%  { transform: translate3d(60px, 180px, 0) scale(0.96); }
+  75%  { transform: translate3d(-80px, 60px, 0) scale(1.04); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes lnAuroraB {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  33%  { transform: translate3d(-140px, -60px, 0) scale(1.05); }
+  66%  { transform: translate3d(-60px, -140px, 0) scale(0.95); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+
+/* Fine SVG fractal-noise grain — adds a "filmic" quality that flat dark
+   backgrounds lack. Encoded as a data URI so we don't ship a binary asset.
+   Tiled and rendered at low opacity so it's felt, not seen. */
+.login-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.04;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  background-size: 160px 160px;
+}
+
+/* Honor user preference — slow transitions or none at all, never a hard cutoff. */
+@media (prefers-reduced-motion: reduce) {
+  .login-aurora::before,
+  .login-aurora::after {
+    animation: none;
+  }
+}
+
+/* Tight display headline character — Linear's signature letter-spacing. */
+.ln-display {
+  font-family: 'Inter Tight', -apple-system, BlinkMacSystemFont, sans-serif;
   font-weight: 600;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--ln-text);
 }
 
-.header p {
-  color: rgba(255,255,255,0.9);
-  font-size: 16px;
-  margin-top: 10px;
+.ln-mono {
+  font-family: ui-monospace, 'JetBrains Mono', SFMono-Regular, monospace;
 }
+
+/* Keyboard shortcut chip — Linear celebrates keyboard-first. */
+.ln-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-family: ui-monospace, 'JetBrains Mono', SFMono-Regular, monospace;
+  font-size: 11px;
+  color: var(--ln-text-muted);
+  background: var(--ln-surface-2);
+  border: 1px solid var(--ln-hairline-strong);
+}
+
+/* Hairline divider that AntD's Divider doesn't quite match. */
+.ln-divider {
+  height: 1px;
+  background: var(--ln-hairline);
+  border: 0;
+  margin: 24px 0;
+}
+
+/* Custom scrollbar — Linear keeps it invisible-ish. */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--ln-hairline-strong);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.16); }

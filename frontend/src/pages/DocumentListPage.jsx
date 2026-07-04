@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Table, Button, Space, Popconfirm, message, Card, Typography, Tag, Empty } from "antd";
 import { DeleteOutlined, ReloadOutlined, FileTextOutlined } from "@ant-design/icons";
-import { listDocuments, deleteDocument } from "../services/api";
+import { listDocuments, deleteDocument } from "@/services/api";
 
 const { Title, Text } = Typography;
 

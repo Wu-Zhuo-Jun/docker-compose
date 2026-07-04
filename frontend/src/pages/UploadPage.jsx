@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Upload, Button, message, Card, Progress, List, Typography, Space } from "antd";
 import { UploadOutlined, FileTextOutlined, CheckCircleOutlined } from "@ant-design/icons";
-import { uploadDocument } from "../services/api";
+import { uploadDocument } from "@/services/api";
 
 const { Dragger } = Upload;
 const { Text } = Typography;
