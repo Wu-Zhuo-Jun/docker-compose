@@ -146,6 +146,34 @@ docker system prune -a
 
 ---
 
+
+### cache清理
+```bash
+# 检查docker的磁盘使用情况
+docker system df 
+docker systen df  -v
+
+# 查看构建缓存（Docker 18.09+）
+docker builder df
+docker builder dx 
+
+# 安全清理cache（保留你能用的 cache）
+docker buildx prune
+docker buildx prune -a -f
+
+#清除dangling镜像
+docker image prune
+
+#删除未使用资源（比较危险）
+docker system prune
+docker system prune -a -f  
+
+# 检查
+```
+
+
+
+
 ## 服务访问地址
 
 | 服务         | 容器内地址           | 主机访问地址                 |
@@ -282,6 +310,3 @@ docker-compose down && docker-compose up -d --build
 Embedding模型需要从hugFace拉去某些镜像，比较久，可以自己从国内镜像源拉取
 docker exec fastapi_backend python -c "from huggingface_hub import snapshot_download; snapshot_download('BAAI/bge-small-zh-v1.5', cache_dir='/app/models', endpoint='https://hf-mirror.com')"
 
-# 安全清理cache（保留你能用的 cache）
-
-docker builder prune

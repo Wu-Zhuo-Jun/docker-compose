@@ -47,7 +47,7 @@ export default function AppShell() {
     items: [
       {
         key: "email",
-        label: user ? user.email : "访客模式",
+        label: user ? user.username : "访客模式",
         icon: <UserOutlined />,
         disabled: true,
       },
@@ -142,9 +142,9 @@ export default function AppShell() {
                     fontSize: 12,
                     fontWeight: 600,
                   }}>
-                  {user ? user.email[0].toUpperCase() : <ThunderboltOutlined />}
+                  {user ? user.username[0].toUpperCase() : <ThunderboltOutlined />}
                 </Avatar>
-                <span style={styles.userName}>{user ? user.email.split("@")[0] : "访客"}</span>
+                <span style={styles.userName}>{user ? user.username : "访客"}</span>
               </div>
             </Dropdown>
           </div>

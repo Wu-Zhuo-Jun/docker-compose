@@ -1,62 +1,42 @@
-import { useState, useEffect } from "react";
-import { Form, Input, Button, Checkbox, App as AntApp, Typography, Divider } from "antd";
+import { useState } from "react";
+import { Form, Input, Button, App as AntApp, Typography, Divider } from "antd";
 import { LockOutlined, UserOutlined, ArrowRightOutlined, EyeInvisibleOutlined, EyeTwoTone } from "@ant-design/icons";
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { linear } from "@/styles/tokens";
 
 const { Title, Text } = Typography;
 
-export default function LoginPage() {
-  const { login, enterAsGuest, logout, isAuthenticated, isGuest, hydrated } = useAuth();
+export default function RegisterPage() {
+  const { register, isAuthenticated, isGuest, hydrated } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const { message } = AntApp.useApp();
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (params.get("clear") === "1") {
-      logout();
-      navigate("/login", { replace: true });
-    }
-  }, []);
-
   if (hydrated && !submitting && (isAuthenticated || isGuest)) {
-    const dest = location.state?.from?.pathname || "/app";
-    return <Navigate to={dest} replace />;
+    return <Navigate to="/app" replace />;
   }
 
   const handleSubmit = async (values) => {
+    if (values.password !== values.confirmPassword) {
+      form.setFields([{ name: "confirmPassword", errors: ["两次输入的密码不一致"] }]);
+      return;
+    }
     setSubmitting(true);
     try {
-      await login(values);
-      message.success("登录成功");
-      const dest = location.state?.from?.pathname || "/app";
-      navigate(dest, { replace: true });
+      await register(values);
+      message.success("注册成功，请登录");
+      navigate("/login", { replace: true });
     } catch (err) {
-      if (err?.code === "INVALID_CREDENTIALS") {
-        form.setFields([{ name: "password", errors: [err.message] }]);
+      if (err?.message?.includes("已存在")) {
+        form.setFields([{ name: "username", errors: [err.message] }]);
       } else {
-        message.error("登录失败，请重试");
+        message.error(err.message || "注册失败，请重试");
       }
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleGuest = () => {
-    enterAsGuest();
-    message.info("已以访客身份进入，部分功能不可用");
-    navigate("/app", { replace: true });
-  };
-
-  const handleTest = () => {
-    fetch("api/auth/getUserInfo")
-      .then((response) => response.json())
-      .then((data) => console.log(data))
-      .catch((error) => console.error("Error:", error));
   };
 
   return (
@@ -66,27 +46,43 @@ export default function LoginPage() {
       <div style={styles.card}>
         <div style={styles.brandRow}>
           <BrandMark />
-          <span className="ln-mono" style={styles.brandWord}>
-            compose-yml
-          </span>
+          <span className="ln-mono" style={styles.brandWord}>compose-yml</span>
         </div>
 
         <div style={{ marginTop: 40 }}>
           <h1 className="ln-display" style={styles.title}>
-            登录工作台
+            创建账号
           </h1>
-          <Text style={styles.subtitle}>使用用户名和密码进入文档管理与检索系统</Text>
+          <Text style={styles.subtitle}>
+            注册后即可使用完整的文档管理与检索功能
+          </Text>
         </div>
 
-        <Form form={form} layout="vertical" requiredMark={false} onFinish={handleSubmit} initialValues={{ remember: true }} style={{ marginTop: 32 }} autoComplete="on">
+        <Form
+          form={form}
+          layout="vertical"
+          requiredMark={false}
+          onFinish={handleSubmit}
+          style={{ marginTop: 32 }}
+          autoComplete="on"
+        >
           <Form.Item
             name="username"
             label={<span style={styles.label}>用户名</span>}
             rules={[
               { required: true, message: "请输入用户名" },
+              { min: 3, message: "用户名至少 3 位" },
               { max: 64, message: "用户名过长" },
-            ]}>
-            <Input size="large" prefix={<UserOutlined style={styles.inputIcon} />} placeholder="your username" autoComplete="username" autoFocus />
+              { pattern: /^[a-zA-Z0-9_-]+$/, message: "仅支持字母、数字、下划线和短横线" },
+            ]}
+          >
+            <Input
+              size="large"
+              prefix={<UserOutlined style={styles.inputIcon} />}
+              placeholder="choose a username"
+              autoComplete="username"
+              autoFocus
+            />
           </Form.Item>
 
           <Form.Item
@@ -97,52 +93,62 @@ export default function LoginPage() {
               { min: 6, message: "密码至少 6 位" },
               { max: 64, message: "密码过长" },
             ]}
-            style={{ marginTop: 16 }}>
+            style={{ marginTop: 16 }}
+          >
             <Input.Password
               size="large"
               prefix={<LockOutlined style={styles.inputIcon} />}
               placeholder="至少 6 位"
-              autoComplete="current-password"
-              iconRender={(visible) => (visible ? <EyeTwoTone twoToneColor={linear.textMuted} /> : <EyeInvisibleOutlined style={styles.inputIcon} />)}
+              autoComplete="new-password"
+              iconRender={(visible) =>
+                visible ? <EyeTwoTone twoToneColor={linear.textMuted} /> : <EyeInvisibleOutlined style={styles.inputIcon} />
+              }
             />
           </Form.Item>
 
-          <div style={styles.formMeta}>
-            <Form.Item name="remember" valuePropName="checked" noStyle>
-              <Checkbox>记住我 30 天</Checkbox>
-            </Form.Item>
-            <Link to="#" style={styles.forgotLink}>
-              忘记密码?
-            </Link>
-          </div>
+          <Form.Item
+            name="confirmPassword"
+            label={<span style={styles.label}>确认密码</span>}
+            rules={[
+              { required: true, message: "请再次输入密码" },
+              { min: 6, message: "密码至少 6 位" },
+            ]}
+            style={{ marginTop: 16 }}
+          >
+            <Input.Password
+              size="large"
+              prefix={<LockOutlined style={styles.inputIcon} />}
+              placeholder="再输一次"
+              autoComplete="new-password"
+              iconRender={(visible) =>
+                visible ? <EyeTwoTone twoToneColor={linear.textMuted} /> : <EyeInvisibleOutlined style={styles.inputIcon} />
+              }
+            />
+          </Form.Item>
 
-          <Button type="primary" htmlType="submit" size="large" block loading={submitting} icon={!submitting && <ArrowRightOutlined />} iconPosition="end" style={{ marginTop: 8, height: 44 }}>
-            {submitting ? "登录中" : "登录"}
+          <Button
+            type="primary"
+            htmlType="submit"
+            size="large"
+            block
+            loading={submitting}
+            icon={!submitting && <ArrowRightOutlined />}
+            iconPosition="end"
+            style={{ marginTop: 8, height: 44 }}
+          >
+            {submitting ? "注册中" : "注册"}
           </Button>
-          <Button onClick={handleTest}>TEST</Button>
         </Form>
 
         <Divider plain style={{ margin: "24px 0 16px", color: linear.textDim, fontSize: 12 }}>
-          或
+          已有账号
         </Divider>
 
-        <Link to="/register">
-          <Button size="large" block style={styles.guestBtn}>
-            没有账号？去注册
+        <Link to="/login">
+          <Button size="large" block style={styles.loginBtn}>
+            返回登录
           </Button>
         </Link>
-
-        <div style={{ textAlign: "center", marginTop: 16 }}>
-          <Link
-            to="#"
-            onClick={(e) => {
-              e.preventDefault();
-              handleGuest();
-            }}
-            style={styles.guestLink}>
-            临时访客进入
-          </Link>
-        </div>
       </div>
     </div>
   );
@@ -223,24 +229,10 @@ const styles = {
   inputIcon: {
     color: linear.textDim,
   },
-  formMeta: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-  forgotLink: {
-    color: linear.textMuted,
-    fontSize: 13,
-  },
-  guestBtn: {
+  loginBtn: {
     height: 44,
     background: "var(--ln-surface-2)",
     border: "1px solid var(--ln-hairline-strong)",
     color: linear.text,
-  },
-  guestLink: {
-    color: linear.textDim,
-    fontSize: 13,
   },
 };

@@ -190,7 +190,7 @@ function ActionRow({ to, icon, title, desc }) {
 function greetingFor(user, isGuest) {
   if (isGuest) return "欢迎,访客";
   if (!user) return "欢迎回来";
-  const name = user.email.split("@")[0];
+  const name = user.username;
   return `欢迎回来,${name}`;
 }
 

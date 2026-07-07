@@ -21,6 +21,7 @@ router = APIRouter(prefix="/auth", tags=["认证"])
 class AuthPayload(BaseModel):
     username: str
     password: str
+    role: str = "user"
 
 
 class UserOut(BaseModel):
@@ -29,6 +30,7 @@ class UserOut(BaseModel):
     id: int
     username: str
     created_at: str
+    role: str
 
 
 @router.post("/register", response_model=UserOut, status_code=201)
@@ -39,6 +41,7 @@ def register(payload: AuthPayload, db: Session = Depends(get_db)):
     user = User(
         username=payload.username,
         password_hash=User.hash_password(payload.password),
+        role=payload.role,
     )
     db.add(user)
     db.commit()
@@ -54,9 +57,16 @@ def login(payload: AuthPayload, db: Session = Depends(get_db)):
     return _serialize(user)
 
 
+@router.get("/getUserInfo", response_model=UserOut)
+def getUserInfo(db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == 8).first()
+    return _serialize(user)
+
+
 def _serialize(user: User) -> dict:
     return {
         "id": user.id,
         "username": user.username,
         "created_at": user.created_at.isoformat() if user.created_at else None,
+        "role": user.role,
     }

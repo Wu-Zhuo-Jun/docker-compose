@@ -4,13 +4,7 @@ const AuthContext = createContext(null);
 
 const STORAGE_KEY = "compose-yml.auth";
 const GUEST_KEY = "compose-yml.guest";
-
-// Mock auth — replace with real /api/auth/login when backend is ready.
-// Accepted credentials (mock): any email matching a basic shape + password >= 6 chars.
-const MOCK_ACCOUNTS = [
-  { email: "admin@local.dev", password: "admin123" },
-  { email: "demo@local.dev", password: "demo1234" },
-];
+const API_BASE = "/api";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -23,24 +17,25 @@ export function AuthProvider({ children }) {
       if (raw) setUser(JSON.parse(raw));
       setIsGuest(localStorage.getItem(GUEST_KEY) === "1");
     } catch {
-      // ignore corrupted storage
     } finally {
       setHydrated(true);
     }
   }, []);
 
-  const login = useCallback(async ({ email, password, remember }) => {
-    // Simulate latency so the loading state is visible.
-    await new Promise((r) => setTimeout(r, 600));
-    const match = MOCK_ACCOUNTS.find(
-      (a) => a.email.toLowerCase() === email.trim().toLowerCase() && a.password === password
-    );
-    if (!match) {
-      const err = new Error("邮箱或密码错误");
+  const login = useCallback(async ({ username, password, remember }) => {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      const err = new Error(body.detail || "用户名或密码错误");
       err.code = "INVALID_CREDENTIALS";
       throw err;
     }
-    const next = { email: match.email, loggedInAt: Date.now() };
+    const data = await res.json();
+    const next = { id: data.id, username: data.username, loggedInAt: Date.now() };
     setUser(next);
     setIsGuest(false);
     if (remember) {
@@ -50,6 +45,19 @@ export function AuthProvider({ children }) {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     }
     return next;
+  }, []);
+
+  const register = useCallback(async ({ username, password }) => {
+    const res = await fetch(`${API_BASE}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || "注册失败");
+    }
+    return res.json();
   }, []);
 
   const enterAsGuest = useCallback(() => {
@@ -66,10 +74,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem(GUEST_KEY);
   }, []);
 
-  const value = useMemo(
-    () => ({ user, isGuest, hydrated, isAuthenticated: !!user, login, logout, enterAsGuest }),
-    [user, isGuest, hydrated, login, logout, enterAsGuest]
-  );
+  const value = useMemo(() => ({ user, isGuest, hydrated, isAuthenticated: !!user, login, register, logout, enterAsGuest }), [user, isGuest, hydrated, login, register, logout, enterAsGuest]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
