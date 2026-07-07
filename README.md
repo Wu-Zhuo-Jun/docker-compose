@@ -148,12 +148,12 @@ docker system prune -a
 
 ## 服务访问地址
 
-| 服务 | 容器内地址 | 主机访问地址 |
-|------|-----------|-------------|
-| FastAPI | http://backend:8000 | http://localhost:8000 |
-| FastAPI 文档 | - | http://localhost:8000/docs |
-| ChromaDB | http://chromadb:8000 | http://localhost:8001 |
-| 健康检查 | - | http://localhost:8000/health |
+| 服务         | 容器内地址           | 主机访问地址                 |
+| ------------ | -------------------- | ---------------------------- |
+| FastAPI      | http://backend:8000  | http://localhost:8000        |
+| FastAPI 文档 | -                    | http://localhost:8000/docs   |
+| ChromaDB     | http://chromadb:8000 | http://localhost:8001        |
+| 健康检查     | -                    | http://localhost:8000/health |
 
 ---
 
@@ -201,8 +201,8 @@ taskkill /PID <PID> /F
 
 ```yaml
 environment:
-  - VECTOR_DB_HOST=chromadb      # 使用 Docker 网络中的服务名
-  - VECTOR_DB_PORT=8000         # 使用容器内部端口
+  - VECTOR_DB_HOST=chromadb # 使用 Docker 网络中的服务名
+  - VECTOR_DB_PORT=8000 # 使用容器内部端口
 ```
 
 **注意**：容器之间通信使用**容器内部端口**，主机访问使用**映射端口**。
@@ -214,7 +214,7 @@ environment:
 ```yaml
 depends_on:
   chromadb:
-    condition: service_started   # 而非 service_healthy
+    condition: service_started # 而非 service_healthy
 ```
 
 ### 5. 数据持久化问题
@@ -233,11 +233,11 @@ docker exec -it chromadb_service ls /chroma/chroma
 
 ## 环境变量说明
 
-| 变量名 | 默认值 | 说明 |
-|--------|--------|------|
+| 变量名           | 默认值     | 说明                             |
+| ---------------- | ---------- | -------------------------------- |
 | `VECTOR_DB_HOST` | `chromadb` | ChromaDB 服务名（Docker 网络内） |
-| `VECTOR_DB_PORT` | `8000` | ChromaDB 容器内端口 |
-| `IS_PERSISTENT` | `TRUE` | 启用数据持久化 |
+| `VECTOR_DB_PORT` | `8000`     | ChromaDB 容器内端口              |
+| `IS_PERSISTENT`  | `TRUE`     | 启用数据持久化                   |
 
 ---
 
@@ -259,6 +259,7 @@ docker exec -it chromadb_service ls /chroma/chroma
 ### Q2: 为什么 `localhost:8001` 访问不到 ChromaDB？
 
 确保使用正确的端口映射：
+
 - 容器内部：ChromaDB 监听 `8000`
 - 主机映射：`8001:8000`
 - 主机访问：`http://localhost:8001`
@@ -280,3 +281,7 @@ docker-compose down && docker-compose up -d --build
 
 Embedding模型需要从hugFace拉去某些镜像，比较久，可以自己从国内镜像源拉取
 docker exec fastapi_backend python -c "from huggingface_hub import snapshot_download; snapshot_download('BAAI/bge-small-zh-v1.5', cache_dir='/app/models', endpoint='https://hf-mirror.com')"
+
+# 安全清理cache（保留你能用的 cache）
+
+docker builder prune

@@ -37,7 +37,11 @@ export default function HomePage() {
 
   return (
     <div>
-      <header style={{ marginBottom: 32 }}>
+      <header style={{
+        marginBottom: 32,
+        padding: "8px 4px 8px 16px",
+        borderLeft: "2px solid var(--ln-accent)",
+      }}>
         <Text style={{
           color: linear.textDim,
           fontSize: 12,

@@ -53,9 +53,31 @@ services:
   #   networks:
   #     - app_network
 
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres_service
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+      - POSTGRES_DB=${DB_NAME:-MyAgentApp}
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-MyAgentApp}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 volumes:
   chroma_data:
   embedding_models:
+  postgres_data:
 
 networks:
   app_network:

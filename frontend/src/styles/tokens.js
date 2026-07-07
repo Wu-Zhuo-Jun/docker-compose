@@ -19,6 +19,15 @@ export const linear = {
   shadow: { raised: "0 1px 2px rgba(0,0,0,0.3)" },
   ease: "cubic-bezier(0.22, 1, 0.36, 1)",
   duration: { hover: "150ms", layout: "400ms" },
+  // Purple-black ambient palette — supports the layered static background.
+  // These are background-only tokens; do not surface them to components.
+  purpleDeep: "#2A1B5E",
+  purpleGlow: "#7C7AE6",
+  purpleAlpha1: "rgba(94,106,210,0.10)",
+  purpleAlpha2: "rgba(94,106,210,0.06)",
+  purpleAlpha3: "rgba(124,122,230,0.05)",
+  meshTop: "linear-gradient(180deg, rgba(42,27,94,0.35) 0%, transparent 60%)",
+  meshCorner: "radial-gradient(60% 80% at 15% 0%, rgba(94,106,210,0.12) 0%, transparent 60%)",
   font: {
     display: `'Inter Tight', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`,
     body: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`,

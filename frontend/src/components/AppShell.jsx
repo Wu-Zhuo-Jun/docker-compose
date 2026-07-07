@@ -63,8 +63,15 @@ export default function AppShell() {
   };
 
   return (
-    <Layout style={{ minHeight: "100vh", background: "transparent", position: "relative", zIndex: 1 }}>
-      <Sider
+    <>
+      {/* Purple-black ambient layers — static, behind everything in /app */}
+      <div className="app-mesh-top" />
+      <div className="app-mesh-corner-tl" />
+      <div className="app-mesh-corner-br" />
+      <div className="app-grid" />
+      <div className="app-grain" />
+      <Layout style={{ minHeight: "100vh", background: "transparent", position: "relative", zIndex: 1 }}>
+        <Sider
         collapsible
         collapsed={collapsed}
         onCollapse={setCollapsed}
@@ -150,6 +157,7 @@ export default function AppShell() {
         </Content>
       </Layout>
     </Layout>
+    </>
   );
 }
 
