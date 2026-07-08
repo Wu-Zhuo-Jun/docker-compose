@@ -533,6 +533,51 @@ def qa_search(query: str, top_k: int = 10) -> Dict[str, Any]:
     }
 
 
+def qa_search_with_context(
+    query: str,
+    conversation_history: Optional[List[Dict[str, str]]] = None,
+    top_k: int = 10,
+) -> Dict[str, Any]:
+    """
+    带对话上下文的问答搜索
+
+    在 qa_search 基础上传入对话历史，让 LLM 能理解上下文。
+    数据库持久化由调用方（chat.py 路由）负责，本函数只负责推理。
+
+    Args:
+        query: 当前用户问题
+        conversation_history: 对话历史 [{"role": "user/assistant", "content": "..."}]
+        top_k: 检索数量
+
+    Returns:
+        与 qa_search 相同的结构
+    """
+    from services.rag_graph import rag_graph
+
+    initial_state = {
+        "query": query,
+        "retry_count": 0,
+        "rewritten_query": "",
+        "retrieved_chunks": [],
+        "relevant_chunks": [],
+        "is_relevant": False,
+        "conversation_history": conversation_history or [],
+    }
+
+    final_state = rag_graph.invoke(initial_state)
+
+    return {
+        "answer": final_state.get("answer", ""),
+        "sources": final_state.get("sources", []),
+        "used_chunks": final_state.get("used_chunks", 0),
+        "groups": final_state.get("groups", {}),
+        "query": query,
+        "total_retrieved": final_state.get("total_retrieved", 0),
+        "total_docs": final_state.get("total_docs", 0),
+        "conversation_history": conversation_history or [],
+    }
+
+
 # ============================================================================
 # 文档管理
 # ============================================================================

@@ -15,6 +15,8 @@ import SearchPage from "@/pages/SearchPage";
 import DocumentListPage from "@/pages/DocumentListPage";
 import RecentPage from "@/pages/RecentPage";
 import KnowledgePage from "@/pages/KnowledgePage";
+import ChatPage from "@/pages/ChatPage";
+import AdminReviewPage from "@/pages/AdminReviewPage";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -46,6 +48,8 @@ ReactDOM.createRoot(document.getElementById("root")).render(
                 <Route path="list" element={<DocumentListPage />} />
                 <Route path="recent" element={<RecentPage />} />
                 <Route path="knowledge" element={<KnowledgePage />} />
+                <Route path="chat" element={<ChatPage />} />
+                <Route path="review" element={<AdminReviewPage />} />
               </Route>
               <Route path="/" element={<Navigate to="/app" replace />} />
               <Route path="*" element={<Navigate to="/app" replace />} />

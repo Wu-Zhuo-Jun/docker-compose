@@ -233,3 +233,26 @@ body {
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.16); }
+
+/* 流式输出光标闪烁动画 */
+@keyframes chat-cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* 会话列表项 hover 出现删除按钮 */
+.session-item-row .session-delete-btn {
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+.session-item-row:hover .session-delete-btn,
+.session-delete-btn:focus {
+  opacity: 0.6;
+}
+.session-delete-btn:hover {
+  opacity: 1 !important;
+}
+
+.session-item-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}

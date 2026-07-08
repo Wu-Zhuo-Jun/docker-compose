@@ -12,7 +12,7 @@ FastAPI 主应用入口
 """
 
 from fastapi import FastAPI
-from routers import document, auth
+from routers import document, auth, chat
 from services.document_service import get_chroma_client
 from services.database import engine
 from sqlalchemy import text
@@ -90,6 +90,7 @@ async def get_vector_db_info():
 # 注册路由
 app.include_router(document.router)
 app.include_router(auth.router)
+app.include_router(chat.router)
 
 
 if __name__ == "__main__":

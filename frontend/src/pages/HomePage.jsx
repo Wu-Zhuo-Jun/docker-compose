@@ -112,17 +112,24 @@ export default function HomePage() {
           <CardHeader title="快速开始" />
           <Space direction="vertical" size={12} style={{ width: "100%" }}>
             <ActionRow
-              to="/app/upload"
-              icon={<UploadOutlined />}
-              title="上传新文档"
-              desc="支持 .docx / .txt,自动分块并建立索引"
+              to="/app/chat"
+              icon={<ThunderboltOutlined />}
+              title="开始智能对话"
+              desc="基于文档库的多轮问答,支持上下文理解"
             />
             <div style={styles.hairline} />
             <ActionRow
               to="/app/search"
               icon={<SearchOutlined />}
-              title="智能检索"
+              title="单次智能检索"
               desc="用自然语言提问,或切换原始检索"
+            />
+            <div style={styles.hairline} />
+            <ActionRow
+              to="/app/upload"
+              icon={<UploadOutlined />}
+              title="上传新文档"
+              desc="支持 .docx / .txt,自动分块并建立索引"
             />
             <div style={styles.hairline} />
             <ActionRow

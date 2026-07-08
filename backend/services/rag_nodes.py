@@ -178,6 +178,7 @@ def answer_generator_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """生成最终答案，输出形状与原 qa_search 完全一致"""
     query = state["query"]
     relevant = state.get("relevant_chunks") or []
+    conversation_history = state.get("conversation_history") or []
 
     if not relevant:
         return {
@@ -193,7 +194,18 @@ def answer_generator_node(state: Dict[str, Any]) -> Dict[str, Any]:
         }
 
     context = build_context_from_chunks(relevant)
-    prompt = _ANSWER_PROMPT_TEMPLATE.format(context=context, query=query)
+
+    # 如果有对话历史，使用增强的 prompt 以保留上下文
+    if conversation_history:
+        from services.rag_nodes_chat import build_conversation_prompt
+        prompt = build_conversation_prompt(
+            conversation_history=conversation_history,
+            current_query=query,
+        )
+        # 把 context 注入到 prompt 中
+        prompt = prompt.replace("{context}", context)
+    else:
+        prompt = _ANSWER_PROMPT_TEMPLATE.format(context=context, query=query)
 
     try:
         llm = get_llm_client()

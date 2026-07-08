@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Layout, Menu, Dropdown, Avatar, Tag, Tooltip, App as AntApp } from "antd";
-import { UploadOutlined, SearchOutlined, FileTextOutlined, UserOutlined, LogoutOutlined, ThunderboltOutlined, ClockCircleOutlined, BookOutlined } from "@ant-design/icons";
+import { UploadOutlined, SearchOutlined, FileTextOutlined, UserOutlined, LogoutOutlined, ThunderboltOutlined, ClockCircleOutlined, BookOutlined, MessageOutlined, AuditOutlined } from "@ant-design/icons";
 import { Outlet, useLocation, useNavigate, NavLink } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { linear } from "@/styles/tokens";
@@ -8,14 +8,16 @@ import { linear } from "@/styles/tokens";
 const { Header, Content, Sider } = Layout;
 
 const navItems = [
-  { key: "/app/upload", icon: <UploadOutlined />, label: "上传文档", shortcut: "U" },
+  { key: "/app/chat", icon: <MessageOutlined />, label: "智能对话", shortcut: "C" },
   { key: "/app/search", icon: <SearchOutlined />, label: "智能检索", shortcut: "S" },
+  { key: "/app/upload", icon: <UploadOutlined />, label: "上传文档", shortcut: "U" },
   { key: "/app/list", icon: <FileTextOutlined />, label: "文档列表", shortcut: "L" },
 ];
 
 const secondaryItems = [
   { key: "/app/recent", icon: <ClockCircleOutlined />, label: "最近访问" },
   { key: "/app/knowledge", icon: <BookOutlined />, label: "知识库" },
+  { key: "/app/review", icon: <AuditOutlined />, label: "文档审核" },
 ];
 
 export default function AppShell() {
@@ -27,7 +29,9 @@ export default function AppShell() {
 
   const selectedKey = useMemo(() => {
     const m = navItems.find((n) => location.pathname.startsWith(n.key));
-    return m ? m.key : "/app/upload";
+    if (m) return m.key;
+    const sec = secondaryItems.find((n) => location.pathname.startsWith(n.key));
+    return sec ? sec.key : "/app/chat";
   }, [location.pathname]);
 
   const handleLogout = () => {
@@ -218,8 +222,15 @@ function GuestBadge({ visible }) {
 
 function BreadcrumbLite({ pathname }) {
   const segs = pathname.split("/").filter(Boolean);
-  const label = segs[segs.length - 1] || "upload";
-  const map = { upload: "上传文档", search: "智能检索", list: "文档列表", app: "工作台" };
+  const label = segs[segs.length - 1] || "chat";
+  const map = {
+    upload: "上传文档",
+    search: "智能检索",
+    list: "文档列表",
+    app: "工作台",
+    chat: "智能对话",
+    review: "文档审核",
+  };
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6, color: linear.textMuted, fontSize: 13 }}>
       <NavLink to="/app" style={{ color: linear.textDim, textDecoration: "none" }}>
