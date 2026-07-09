@@ -41,11 +41,13 @@ router = APIRouter(prefix="/chat", tags=["对话"])
 
 class CreateSessionRequest(BaseModel):
     """创建会话请求"""
+
     title: Optional[str] = "新对话"
 
 
 class SessionResponse(BaseModel):
     """会话响应"""
+
     id: str
     user_id: int
     title: str
@@ -55,6 +57,7 @@ class SessionResponse(BaseModel):
 
 class MessageResponse(BaseModel):
     """消息响应"""
+
     id: str
     session_id: str
     role: str
@@ -65,12 +68,14 @@ class MessageResponse(BaseModel):
 
 class SessionDetailResponse(BaseModel):
     """会话详情响应"""
+
     session: SessionResponse
     messages: List[MessageResponse]
 
 
 class QARequest(BaseModel):
     """多轮问答请求"""
+
     session_id: Optional[str] = None  # 可选，新建会话时为空
     query: str
     top_k: int = Field(default=10, ge=1, le=50)
@@ -78,6 +83,7 @@ class QARequest(BaseModel):
 
 class QAResponse(BaseModel):
     """多轮问答响应"""
+
     session_id: str
     message_id: str
     answer: str
@@ -99,7 +105,7 @@ class QAResponse(BaseModel):
 def list_sessions(
     user_id: int = Query(..., description="用户ID"),
     limit: int = Query(50, ge=1, le=100),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     获取用户所有会话列表（按更新时间倒序）
@@ -118,15 +124,12 @@ def list_sessions(
 def create_session(
     request: CreateSessionRequest,
     user_id: int = Query(..., description="用户ID"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     创建新会话
     """
-    session = ChatSession(
-        user_id=user_id,
-        title=request.title or "新对话"
-    )
+    session = ChatSession(user_id=user_id, title=request.title or "新对话")
     db.add(session)
     db.commit()
     db.refresh(session)
@@ -137,7 +140,7 @@ def create_session(
 def get_session(
     session_id: str,
     user_id: int = Query(..., description="用户ID"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     获取会话详情（含消息列表）
@@ -164,7 +167,7 @@ def get_session(
 
     return SessionDetailResponse(
         session=SessionResponse(**session.to_dict()),
-        messages=[MessageResponse(**m.to_dict()) for m in messages]
+        messages=[MessageResponse(**m.to_dict()) for m in messages],
     )
 
 
@@ -172,7 +175,7 @@ def get_session(
 def delete_session(
     session_id: str,
     user_id: int = Query(..., description="用户ID"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     删除会话（级联删除所有消息）
@@ -204,7 +207,7 @@ def delete_session(
 def multi_turn_qa(
     request: QARequest,
     user_id: int = Query(..., description="用户ID"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     多轮问答接口
@@ -243,10 +246,7 @@ def multi_turn_qa(
         .order_by(ChatMessage.created_at)
         .all()
     )
-    conversation_history = [
-        {"role": m.role, "content": m.content}
-        for m in messages
-    ]
+    conversation_history = [{"role": m.role, "content": m.content} for m in messages]
 
     # 3. 调用 RAG 工作流
     from services.document_service import qa_search_with_context
@@ -254,15 +254,11 @@ def multi_turn_qa(
     rag_result = qa_search_with_context(
         query=request.query,
         conversation_history=conversation_history,
-        top_k=request.top_k
+        top_k=request.top_k,
     )
 
     # 4. 保存用户消息
-    user_msg = ChatMessage(
-        session_id=session.id,
-        role="user",
-        content=request.query
-    )
+    user_msg = ChatMessage(session_id=session.id, role="user", content=request.query)
     db.add(user_msg)
 
     # 5. 保存助手回复
@@ -276,7 +272,7 @@ def multi_turn_qa(
             "groups": rag_result.get("groups", {}),
             "total_retrieved": rag_result.get("total_retrieved", 0),
             "total_docs": rag_result.get("total_docs", 0),
-        }
+        },
     )
     db.add(assistant_msg)
     db.commit()
@@ -293,10 +289,7 @@ def multi_turn_qa(
         .order_by(ChatMessage.created_at)
         .all()
     )
-    updated_history = [
-        {"role": m.role, "content": m.content}
-        for m in updated_messages
-    ]
+    updated_history = [{"role": m.role, "content": m.content} for m in updated_messages]
 
     return QAResponse(
         session_id=str(session.id),
@@ -308,7 +301,7 @@ def multi_turn_qa(
         query=request.query,
         total_retrieved=rag_result.get("total_retrieved", 0),
         total_docs=rag_result.get("total_docs", 0),
-        conversation_history=updated_history
+        conversation_history=updated_history,
     )
 
 
@@ -339,6 +332,7 @@ async def multi_turn_qa_stream(
     - event: done     -> 包含最终 message_id
     - event: error    -> 错误信息
     """
+    print("调用流式问答接口")
     # 1. 获取或创建会话
     if request.session_id:
         try:
@@ -368,17 +362,17 @@ async def multi_turn_qa_stream(
         .order_by(ChatMessage.created_at)
         .all()
     )
-    conversation_history = [
-        {"role": m.role, "content": m.content}
-        for m in messages
-    ]
+    conversation_history = [{"role": m.role, "content": m.content} for m in messages]
 
     async def event_generator():
         # 发送 session 事件
-        yield _sse_format("session", {
-            "session_id": session_id_str,
-            "conversation_history": conversation_history,
-        })
+        yield _sse_format(
+            "session",
+            {
+                "session_id": session_id_str,
+                "conversation_history": conversation_history,
+            },
+        )
 
         # 离线保存：用户消息
         try:
@@ -396,10 +390,17 @@ async def multi_turn_qa_stream(
             return
 
         # 调用流式 RAG
-        from services.rag_nodes_chat import conversation_context_node, conversation_save_node
-        from services.rag_nodes import query_rewriter_node, retriever_node, relevance_grader_node, should_retry
+        from services.rag_nodes_chat import (
+            conversation_context_node,
+            conversation_save_node,
+        )
+        from services.rag_nodes import (
+            query_rewriter_node,
+            retriever_node,
+            relevance_grader_node,
+            should_retry,
+        )
         from services.rag_nodes_stream import answer_generator_stream_node
-        from db_models import ChatMessage
 
         # 加载最新历史
         conversation_history_full = conversation_history + [
@@ -423,9 +424,13 @@ async def multi_turn_qa_stream(
 
             # 重试逻辑
             while should_retry(state) == "rewrite":
-                state.update(await loop.run_in_executor(None, query_rewriter_node, state))
+                state.update(
+                    await loop.run_in_executor(None, query_rewriter_node, state)
+                )
                 state.update(await loop.run_in_executor(None, retriever_node, state))
-                state.update(await loop.run_in_executor(None, relevance_grader_node, state))
+                state.update(
+                    await loop.run_in_executor(None, relevance_grader_node, state)
+                )
         except Exception as e:
             yield _sse_format("error", {"detail": f"检索失败: {str(e)}"})
             return
@@ -437,10 +442,13 @@ async def multi_turn_qa_stream(
                 if partial.get("_stream") == "answer_start":
                     continue
                 if partial.get("_stream") == "answer_chunk":
-                    yield _sse_format("chunk", {
-                        "delta": partial["delta"],
-                        "answer": partial["answer"],
-                    })
+                    yield _sse_format(
+                        "chunk",
+                        {
+                            "delta": partial["delta"],
+                            "answer": partial["answer"],
+                        },
+                    )
                 else:
                     final_state = partial
         except Exception as e:
@@ -457,7 +465,7 @@ async def multi_turn_qa_stream(
                 session_id=session.id,
                 role="assistant",
                 content=final_state.get("answer", ""),
-                metadata={
+                metadata_={
                     "sources": final_state.get("sources", []),
                     "used_chunks": final_state.get("used_chunks", 0),
                     "groups": final_state.get("groups", {}),
@@ -474,18 +482,23 @@ async def multi_turn_qa_stream(
             return
 
         # 发送 sources 事件
-        yield _sse_format("sources", {
-            "sources": final_state.get("sources", []),
-            "used_chunks": final_state.get("used_chunks", 0),
-            "total_retrieved": final_state.get("total_retrieved", 0),
-            "total_docs": final_state.get("total_docs", 0),
-            "groups": final_state.get("groups", {}),
-        })
+        yield _sse_format(
+            "sources",
+            {
+                "sources": final_state.get("sources", []),
+                "used_chunks": final_state.get("used_chunks", 0),
+                "total_retrieved": final_state.get("total_retrieved", 0),
+                "total_docs": final_state.get("total_docs", 0),
+                "groups": final_state.get("groups", {}),
+            },
+        )
 
         # 自动生成标题（如果是新会话且只有 1 轮对话）
         new_title = None
         if session.title == "新对话":
-            new_title = await _generate_title(request.query, final_state.get("answer", ""))
+            new_title = await _generate_title(
+                request.query, final_state.get("answer", "")
+            )
             if new_title:
                 session.title = new_title
                 try:
@@ -494,11 +507,14 @@ async def multi_turn_qa_stream(
                     db.rollback()
 
         # 发送 done 事件
-        yield _sse_format("done", {
-            "message_id": str(assistant_msg.id),
-            "session_id": session_id_str,
-            "new_title": new_title,
-        })
+        yield _sse_format(
+            "done",
+            {
+                "message_id": str(assistant_msg.id),
+                "session_id": session_id_str,
+                "new_title": new_title,
+            },
+        )
 
     return StreamingResponse(
         event_generator(),
@@ -560,6 +576,7 @@ async def _generate_title(query: str, answer: str) -> Optional[str]:
 
 class UpdateSessionRequest(BaseModel):
     """更新会话请求"""
+
     title: Optional[str] = None
 
 

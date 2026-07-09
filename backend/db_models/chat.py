@@ -53,7 +53,7 @@ class ChatMessage(Base):
     session_id = Column(UUID(as_uuid=True), ForeignKey("chat_sessions.id", ondelete="CASCADE"), nullable=False)
     role = Column(String(20), nullable=False)  # 'user' / 'assistant' / 'system'
     content = Column(Text, nullable=False)
-    metadata = Column(JSONB, nullable=True)  # 存储 sources, chunks 等检索信息
+    metadata_ = Column("metadata", JSONB, nullable=True)  # 存储 sources, chunks 等检索信息
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # 关联会话
@@ -65,6 +65,6 @@ class ChatMessage(Base):
             "session_id": str(self.session_id),
             "role": self.role,
             "content": self.content,
-            "metadata": self.metadata,
+            "metadata": self.metadata_,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }

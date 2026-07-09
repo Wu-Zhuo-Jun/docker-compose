@@ -34,8 +34,8 @@ if not DEEPSEEK_API_KEY:
 os.environ["OPENAI_API_KEY"] = DEEPSEEK_API_KEY
 
 # # PostgreSQL 配置（用户认证）
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "5432")
+DB_HOST = os.getenv("DB_HOST", "postgres")
+DB_PORT = os.getenv("DB_PORT", "5433")
 DB_NAME = os.getenv("DB_NAME", "MyAgentApp")
 DB_USER = os.getenv("DB_USER", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")

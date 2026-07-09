@@ -14,11 +14,14 @@ FastAPI 主应用入口
 from fastapi import FastAPI
 from routers import document, auth, chat
 from services.document_service import get_chroma_client
-from services.database import engine
+from services.database import engine, init_db
 from sqlalchemy import text
 import config  # noqa: F401 - 加载配置（设置环境变量等）
 import uvicorn
 import logging
+
+# 导入所有模型，确保 Base.metadata 包含它们
+import db_models.user  # noqa: F401
 
 logger = logging.getLogger("startup")
 
@@ -27,11 +30,16 @@ app = FastAPI(title="Document RAG API", version="1.0.0")
 
 @app.on_event("startup")
 def verify_dependencies():
-    """启动时确认 Postgres / Chroma 可达,失败直接挂,避免请求阶段才报错。"""
+    """启动时确认 Postgres / Chroma 可达,并初始化数据库表结构。"""
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         logger.info("[startup] postgres OK")
+
+        # 初始化数据库表
+        init_db()
+        logger.info("[startup] database tables initialized")
+
     except Exception as e:
         logger.error("[startup] postgres UNREACHABLE: %s", e)
         raise

@@ -35,21 +35,17 @@ export const uploadPendingDocument = async (file, uploaderId, onProgress) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await apiClient.post(
-    `/documents/upload-pending?uploader_id=${uploaderId}`,
-    formData,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-      onUploadProgress: (progressEvent) => {
-        if (onProgress && progressEvent.total) {
-          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          onProgress(percent);
-        }
-      },
-    }
-  );
+  const response = await apiClient.post(`/documents/upload-pending?uploader_id=${uploaderId}`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+    onUploadProgress: (progressEvent) => {
+      if (onProgress && progressEvent.total) {
+        const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        onProgress(percent);
+      }
+    },
+  });
 
   return response.data;
 };
@@ -85,43 +81,31 @@ export const deleteDocument = async (docId) => {
 // ============================================================================
 
 export const listSessions = async (userId, limit = 50) => {
-  const response = await apiClient.get(
-    `/chat/sessions?user_id=${userId}&limit=${limit}`
-  );
+  const response = await apiClient.get(`/chat/sessions?user_id=${userId}&limit=${limit}`);
   return response.data;
 };
 
 export const createSession = async (userId, title = "新对话") => {
-  const response = await apiClient.post(
-    `/chat/sessions?user_id=${userId}`,
-    { title }
-  );
+  const response = await apiClient.post(`/chat/sessions?user_id=${userId}`, { title });
   return response.data;
 };
 
 export const getSession = async (sessionId, userId) => {
-  const response = await apiClient.get(
-    `/chat/sessions/${sessionId}?user_id=${userId}`
-  );
+  const response = await apiClient.get(`/chat/sessions/${sessionId}?user_id=${userId}`);
   return response.data;
 };
 
 export const deleteSession = async (sessionId, userId) => {
-  const response = await apiClient.delete(
-    `/chat/sessions/${sessionId}?user_id=${userId}`
-  );
+  const response = await apiClient.delete(`/chat/sessions/${sessionId}?user_id=${userId}`);
   return response.data;
 };
 
 export const multiTurnQA = async (userId, query, sessionId = null, topK = 10) => {
-  const response = await apiClient.post(
-    `/chat/qa?user_id=${userId}`,
-    {
-      query,
-      session_id: sessionId,
-      top_k: topK,
-    }
-  );
+  const response = await apiClient.post(`/chat/qa?user_id=${userId}`, {
+    query,
+    session_id: sessionId,
+    top_k: topK,
+  });
   return response.data;
 };
 
@@ -138,8 +122,8 @@ export const multiTurnQA = async (userId, query, sessionId = null, topK = 10) =>
 export const multiTurnQAStream = (userId, query, sessionId, topK = 10, handlers = {}) => {
   const controller = new AbortController();
   const params = new URLSearchParams({ user_id: String(userId) });
-  const url = `/chat/qa/stream?${params.toString()}`;
-
+  const url = `${API_BASE_URL}/chat/qa/stream?${params.toString()}`;
+  console.log("调用流式问答接口", url);
   (async () => {
     try {
       const res = await fetch(url, {
@@ -233,10 +217,7 @@ export const multiTurnQAStream = (userId, query, sessionId, topK = 10, handlers 
 };
 
 export const updateSession = async (sessionId, userId, payload) => {
-  const response = await apiClient.patch(
-    `/chat/sessions/${sessionId}?user_id=${userId}`,
-    payload
-  );
+  const response = await apiClient.patch(`/chat/sessions/${sessionId}?user_id=${userId}`, payload);
   return response.data;
 };
 
@@ -245,40 +226,30 @@ export const updateSession = async (sessionId, userId, payload) => {
 // ============================================================================
 
 export const listPendingReviews = async (adminId) => {
-  const response = await apiClient.get(
-    `/documents/reviews/pending?admin_id=${adminId}`
-  );
+  const response = await apiClient.get(`/documents/reviews/pending?admin_id=${adminId}`);
   return response.data;
 };
 
 export const listAllReviews = async (adminId, status = null) => {
   const params = new URLSearchParams({ admin_id: String(adminId) });
   if (status) params.append("status", status);
-  const response = await apiClient.get(
-    `/documents/reviews/all?${params.toString()}`
-  );
+  const response = await apiClient.get(`/documents/reviews/all?${params.toString()}`);
   return response.data;
 };
 
 export const approveReview = async (reviewId, reviewerId, comment = null) => {
-  const response = await apiClient.post(
-    `/documents/reviews/${reviewId}/approve`,
-    {
-      reviewer_id: reviewerId,
-      comment,
-    }
-  );
+  const response = await apiClient.post(`/documents/reviews/${reviewId}/approve`, {
+    reviewer_id: reviewerId,
+    comment,
+  });
   return response.data;
 };
 
 export const rejectReview = async (reviewId, reviewerId, comment = null) => {
-  const response = await apiClient.post(
-    `/documents/reviews/${reviewId}/reject`,
-    {
-      reviewer_id: reviewerId,
-      comment,
-    }
-  );
+  const response = await apiClient.post(`/documents/reviews/${reviewId}/reject`, {
+    reviewer_id: reviewerId,
+    comment,
+  });
   return response.data;
 };
 
