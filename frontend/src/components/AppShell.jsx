@@ -1,6 +1,17 @@
 import { useState, useMemo } from "react";
 import { Layout, Menu, Dropdown, Avatar, Tag, Tooltip, App as AntApp } from "antd";
-import { UploadOutlined, SearchOutlined, FileTextOutlined, UserOutlined, LogoutOutlined, ThunderboltOutlined, ClockCircleOutlined, BookOutlined, MessageOutlined, AuditOutlined } from "@ant-design/icons";
+import {
+  UploadOutlined,
+  SearchOutlined,
+  FileTextOutlined,
+  UserOutlined,
+  LogoutOutlined,
+  ThunderboltOutlined,
+  ClockCircleOutlined,
+  BookOutlined,
+  MessageOutlined,
+  AuditOutlined,
+} from "@ant-design/icons";
 import { Outlet, useLocation, useNavigate, NavLink } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { linear } from "@/styles/tokens";
@@ -76,91 +87,93 @@ export default function AppShell() {
       <div className="app-grain" />
       <Layout style={{ minHeight: "100vh", background: "transparent", position: "relative", zIndex: 1 }}>
         <Sider
-        collapsible
-        collapsed={collapsed}
-        onCollapse={setCollapsed}
-        width={232}
-        collapsedWidth={64}
-        theme="dark"
-        style={{
-          background: "var(--ln-ground)",
-          borderRight: "1px solid var(--ln-hairline)",
-        }}>
-        <BrandMark collapsed={collapsed} />
-        <div style={{ padding: "8px 12px 0" }}>
-          <SectionLabel>工作区</SectionLabel>
-          <Menu
-            theme="dark"
-            mode="inline"
-            selectedKeys={[selectedKey]}
-            onClick={({ key }) => navigate(key)}
-            items={navItems.map((i) => ({
-              key: i.key,
-              icon: i.icon,
-              label: <NavItemLabel label={i.label} shortcut={i.shortcut} />,
-            }))}
-            style={{ background: "transparent", border: "none" }}
-          />
-        </div>
-
-        <div style={{ padding: "16px 12px 0" }}>
-          <SectionLabel>浏览</SectionLabel>
-          <Menu
-            theme="dark"
-            mode="inline"
-            items={secondaryItems.map((i) => ({
-              key: i.key,
-              icon: i.icon,
-              label: i.label,
-            }))}
-            style={{ background: "transparent", border: "none" }}
-          />
-        </div>
-
-        <div style={styles.siderFooter(collapsed)}>
-          <GuestBadge visible={isGuest} />
-        </div>
-      </Sider>
-
-      <Layout style={{ background: "transparent" }}>
-        <Header style={styles.header}>
-          <BreadcrumbLite pathname={location.pathname} />
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <Tooltip title="按 ⌘K 打开命令面板 (即将推出)">
-              <div style={styles.searchChip}>
-                <SearchOutlined style={{ color: linear.textDim, fontSize: 13 }} />
-                <span style={{ marginLeft: 8, color: linear.textMuted, fontSize: 13 }}>搜索</span>
-                <span style={{ marginLeft: 16, display: "flex", gap: 4 }}>
-                  <span className="ln-kbd">⌘</span>
-                  <span className="ln-kbd">K</span>
-                </span>
-              </div>
-            </Tooltip>
-            <Dropdown menu={userMenu} trigger={["click"]} placement="bottomRight">
-              <div style={styles.userChip}>
-                <Avatar
-                  size={28}
-                  style={{
-                    background: isGuest ? linear.surface2 : linear.accentSurface,
-                    color: isGuest ? linear.textMuted : linear.accent,
-                    fontSize: 12,
-                    fontWeight: 600,
-                  }}>
-                  {user ? user.username[0].toUpperCase() : <ThunderboltOutlined />}
-                </Avatar>
-                <span style={styles.userName}>{user ? user.username : "访客"}</span>
-              </div>
-            </Dropdown>
+          collapsible
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
+          width={232}
+          collapsedWidth={64}
+          theme="dark"
+          style={{
+            background: "var(--ln-ground)",
+            borderRight: "1px solid var(--ln-hairline)",
+          }}>
+          <BrandMark collapsed={collapsed} />
+          <div style={{ padding: "8px 12px 0" }}>
+            <SectionLabel>工作区</SectionLabel>
+            <Menu
+              theme="dark"
+              mode="inline"
+              selectedKeys={[selectedKey]}
+              onClick={({ key }) => navigate(key)}
+              items={navItems.map((i) => ({
+                key: i.key,
+                icon: i.icon,
+                label: <NavItemLabel label={i.label} shortcut={i.shortcut} />,
+              }))}
+              style={{ background: "transparent", border: "none" }}
+            />
           </div>
-        </Header>
 
-        <Content style={styles.content}>
-          <div style={styles.contentInner}>
-            <Outlet />
+          <div style={{ padding: "16px 12px 0" }}>
+            <SectionLabel>浏览</SectionLabel>
+            <Menu
+              theme="dark"
+              mode="inline"
+              items={secondaryItems.map((i) => ({
+                key: i.key,
+                icon: i.icon,
+                label: i.label,
+              }))}
+              onClick={({ key }) => navigate(key)}
+              selectedKeys={[selectedKey]}
+              style={{ background: "transparent", border: "none" }}
+            />
           </div>
-        </Content>
+
+          <div style={styles.siderFooter(collapsed)}>
+            <GuestBadge visible={isGuest} />
+          </div>
+        </Sider>
+
+        <Layout style={{ background: "transparent" }}>
+          <Header style={styles.header}>
+            <BreadcrumbLite pathname={location.pathname} />
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <Tooltip title="按 ⌘K 打开命令面板 (即将推出)">
+                <div style={styles.searchChip}>
+                  <SearchOutlined style={{ color: linear.textDim, fontSize: 13 }} />
+                  <span style={{ marginLeft: 8, color: linear.textMuted, fontSize: 13 }}>搜索</span>
+                  <span style={{ marginLeft: 16, display: "flex", gap: 4 }}>
+                    <span className="ln-kbd">⌘</span>
+                    <span className="ln-kbd">K</span>
+                  </span>
+                </div>
+              </Tooltip>
+              <Dropdown menu={userMenu} trigger={["click"]} placement="bottomRight">
+                <div style={styles.userChip}>
+                  <Avatar
+                    size={28}
+                    style={{
+                      background: isGuest ? linear.surface2 : linear.accentSurface,
+                      color: isGuest ? linear.textMuted : linear.accent,
+                      fontSize: 12,
+                      fontWeight: 600,
+                    }}>
+                    {user ? user.username[0].toUpperCase() : <ThunderboltOutlined />}
+                  </Avatar>
+                  <span style={styles.userName}>{user ? user.username : "访客"}</span>
+                </div>
+              </Dropdown>
+            </div>
+          </Header>
+
+          <Content style={styles.content}>
+            <div style={styles.contentInner}>
+              <Outlet />
+            </div>
+          </Content>
+        </Layout>
       </Layout>
-    </Layout>
     </>
   );
 }

@@ -26,7 +26,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc
-
+from pprint import pprint
 from services.database import get_db
 from db_models import User, ChatSession, ChatMessage
 
@@ -246,6 +246,7 @@ def multi_turn_qa(
         .order_by(ChatMessage.created_at)
         .all()
     )
+    # pprint(messages)
     conversation_history = [{"role": m.role, "content": m.content} for m in messages]
 
     # 3. 调用 RAG 工作流
@@ -363,6 +364,7 @@ async def multi_turn_qa_stream(
         .all()
     )
     conversation_history = [{"role": m.role, "content": m.content} for m in messages]
+    pprint(f"conversation_history1: {conversation_history}")
 
     async def event_generator():
         # 发送 session 事件

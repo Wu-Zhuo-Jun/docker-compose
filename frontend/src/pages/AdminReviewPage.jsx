@@ -1,38 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  Table,
-  Button,
-  Tag,
-  Space,
-  Typography,
-  App as AntApp,
-  message as antdMessage,
-  Modal,
-  Input,
-  Tabs,
-  Avatar,
-  Empty,
-  Spin,
-  Card,
-  Statistic,
-  Tooltip,
-} from "antd";
-import {
-  CheckOutlined,
-  CloseOutlined,
-  FileTextOutlined,
-  ClockCircleOutlined,
-  UserOutlined,
-  CalendarOutlined,
-  ReloadOutlined,
-  ExclamationCircleOutlined,
-} from "@ant-design/icons";
-import {
-  listPendingReviews,
-  listAllReviews,
-  approveReview,
-  rejectReview,
-} from "@/services/api";
+import { Table, Button, Tag, Space, Typography, App as AntApp, message as antdMessage, Modal, Input, Tabs, Avatar, Empty, Spin, Card, Statistic, Tooltip } from "antd";
+import { CheckOutlined, CloseOutlined, FileTextOutlined, ClockCircleOutlined, UserOutlined, CalendarOutlined, ReloadOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
+import { listPendingReviews, listAllReviews, approveReview, rejectReview } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { linear } from "@/styles/tokens";
 
@@ -46,54 +15,39 @@ function AdminReviewPage() {
 
   const [activeTab, setActiveTab] = useState("pending");
   const [pendingReviews, setPendingReviews] = useState([]);
+  const [approvedReviews, setApprovedReviews] = useState([]);
+  const [rejectedReviews, setRejectedReviews] = useState([]);
   const [allReviews, setAllReviews] = useState([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
   const [rejectModal, setRejectModal] = useState({ open: false, review: null });
   const [rejectComment, setRejectComment] = useState("");
 
-  // 加载待审核列表
-  const loadPending = useCallback(async () => {
+  // 一次性加载所有数据
+  const loadAllData = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await listPendingReviews(reviewerId);
-      setPendingReviews(data || []);
+      const [pending, approved, rejected, all] = await Promise.all([
+        listPendingReviews(reviewerId),
+        listAllReviews(reviewerId, "approved"),
+        listAllReviews(reviewerId, "rejected"),
+        listAllReviews(reviewerId),
+      ]);
+      setPendingReviews(pending || []);
+      setApprovedReviews(approved || []);
+      setRejectedReviews(rejected || []);
+      setAllReviews(all || []);
     } catch (err) {
-      console.error("Failed to load pending reviews:", err);
-      messageApi.error("加载待审核列表失败");
+      console.error("Failed to load reviews:", err);
+      messageApi.error("加载审核数据失败");
     } finally {
       setLoading(false);
     }
   }, [reviewerId, messageApi]);
 
-  // 加载全部审核记录
-  const loadAll = useCallback(
-    async (status = null) => {
-      setLoading(true);
-      try {
-        const data = await listAllReviews(reviewerId, status);
-        setAllReviews(data || []);
-      } catch (err) {
-        console.error("Failed to load all reviews:", err);
-        messageApi.error("加载审核记录失败");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [reviewerId, messageApi]
-  );
-
   useEffect(() => {
-    if (activeTab === "pending") {
-      loadPending();
-    } else if (activeTab === "approved") {
-      loadAll("approved");
-    } else if (activeTab === "rejected") {
-      loadAll("rejected");
-    } else if (activeTab === "all") {
-      loadAll();
-    }
-  }, [activeTab, loadPending, loadAll]);
+    loadAllData();
+  }, [loadAllData]);
 
   // 审批通过
   const handleApprove = async (review) => {
@@ -101,7 +55,7 @@ function AdminReviewPage() {
     try {
       await approveReview(review.id, reviewerId);
       messageApi.success("已通过审批，文档已索引到向量库");
-      loadPending();
+      loadAllData();
     } catch (err) {
       console.error("Failed to approve:", err);
       messageApi.error("审批失败: " + (err.message || "未知错误"));
@@ -127,7 +81,7 @@ function AdminReviewPage() {
       messageApi.success("已拒绝文档");
       setRejectModal({ open: false, review: null });
       setRejectComment("");
-      loadPending();
+      loadAllData();
     } catch (err) {
       console.error("Failed to reject:", err);
       messageApi.error("拒绝失败: " + (err.message || "未知错误"));
@@ -152,9 +106,9 @@ function AdminReviewPage() {
                 fontSize: 11,
                 color: linear.textDim,
                 fontFamily: linear.font.mono,
-              }}
-            >
-              {record.doc_id?.slice(0, 8)}...
+              }}>
+              {/* {record.doc_id?.slice(0, 8)}... */}
+              {record.doc_id}
             </Text>
           </div>
         </Space>
@@ -174,13 +128,10 @@ function AdminReviewPage() {
               color: linear.textMuted,
               fontSize: 10,
               fontWeight: 600,
-            }}
-          >
+            }}>
             {username?.[0]?.toUpperCase() || <UserOutlined />}
           </Avatar>
-          <Text style={{ color: linear.textMuted, fontSize: 13 }}>
-            {username || `用户#${record.uploader_id}`}
-          </Text>
+          <Text style={{ color: linear.textMuted, fontSize: 13 }}>{username || `用户#${record.uploader_id}`}</Text>
         </Space>
       ),
     },
@@ -231,24 +182,10 @@ function AdminReviewPage() {
       width: 200,
       render: (_, record) => (
         <Space size={6}>
-          <Button
-            type="primary"
-            size="small"
-            icon={<CheckOutlined />}
-            onClick={() => handleApprove(record)}
-            loading={actionLoading === record.id}
-            style={{ height: 28 }}
-          >
+          <Button type="primary" size="small" icon={<CheckOutlined />} onClick={() => handleApprove(record)} loading={actionLoading === record.id} style={{ height: 28 }}>
             通过
           </Button>
-          <Button
-            danger
-            size="small"
-            icon={<CloseOutlined />}
-            onClick={() => showRejectModal(record)}
-            loading={actionLoading === record.id}
-            style={{ height: 28 }}
-          >
+          <Button danger size="small" icon={<CloseOutlined />} onClick={() => showRejectModal(record)} loading={actionLoading === record.id} style={{ height: 28 }}>
             拒绝
           </Button>
         </Space>
@@ -264,14 +201,7 @@ function AdminReviewPage() {
       dataIndex: "reviewer_username",
       key: "reviewer",
       width: 120,
-      render: (username) =>
-        username ? (
-          <Text style={{ color: linear.textMuted, fontSize: 13 }}>
-            {username}
-          </Text>
-        ) : (
-          <Text style={{ color: linear.textDim, fontSize: 12 }}>—</Text>
-        ),
+      render: (username) => (username ? <Text style={{ color: linear.textMuted, fontSize: 13 }}>{username}</Text> : <Text style={{ color: linear.textDim, fontSize: 12 }}>—</Text>),
     },
     {
       title: "审核时间",
@@ -300,9 +230,7 @@ function AdminReviewPage() {
       render: (comment) =>
         comment ? (
           <Tooltip title={comment}>
-            <Text style={{ color: linear.textMuted, fontSize: 12 }}>
-              {comment}
-            </Text>
+            <Text style={{ color: linear.textMuted, fontSize: 12 }}>{comment}</Text>
           </Tooltip>
         ) : (
           <Text style={{ color: linear.textDim, fontSize: 12 }}>—</Text>
@@ -313,8 +241,8 @@ function AdminReviewPage() {
   // 统计
   const stats = {
     pending: pendingReviews.length,
-    approved: allReviews.filter((r) => r.status === "approved").length,
-    rejected: allReviews.filter((r) => r.status === "rejected").length,
+    approved: approvedReviews.length,
+    rejected: rejectedReviews.length,
     total: allReviews.length,
   };
 
@@ -339,16 +267,7 @@ function AdminReviewPage() {
           loading={loading}
           pagination={{ pageSize: 10, showSizeChanger: false }}
           locale={{
-            emptyText: (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={
-                  <Text style={{ color: linear.textDim }}>
-                    暂无待审核文档
-                  </Text>
-                }
-              />
-            ),
+            emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<Text style={{ color: linear.textDim }}>暂无待审核文档</Text>} />,
           }}
         />
       ),
@@ -363,21 +282,12 @@ function AdminReviewPage() {
       children: (
         <Table
           columns={allColumns}
-          dataSource={allReviews}
+          dataSource={approvedReviews}
           rowKey="id"
           loading={loading}
           pagination={{ pageSize: 10, showSizeChanger: false }}
           locale={{
-            emptyText: (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={
-                  <Text style={{ color: linear.textDim }}>
-                    暂无已通过的文档
-                  </Text>
-                }
-              />
-            ),
+            emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<Text style={{ color: linear.textDim }}>暂无已通过的文档</Text>} />,
           }}
         />
       ),
@@ -392,21 +302,12 @@ function AdminReviewPage() {
       children: (
         <Table
           columns={allColumns}
-          dataSource={allReviews}
+          dataSource={rejectedReviews}
           rowKey="id"
           loading={loading}
           pagination={{ pageSize: 10, showSizeChanger: false }}
           locale={{
-            emptyText: (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={
-                  <Text style={{ color: linear.textDim }}>
-                    暂无已拒绝的文档
-                  </Text>
-                }
-              />
-            ),
+            emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<Text style={{ color: linear.textDim }}>暂无已拒绝的文档</Text>} />,
           }}
         />
       ),
@@ -414,15 +315,7 @@ function AdminReviewPage() {
     {
       key: "all",
       label: "全部记录",
-      children: (
-        <Table
-          columns={allColumns}
-          dataSource={allReviews}
-          rowKey="id"
-          loading={loading}
-          pagination={{ pageSize: 10, showSizeChanger: false }}
-        />
-      ),
+      children: <Table columns={allColumns} dataSource={allReviews} rowKey="id" loading={loading} pagination={{ pageSize: 10, showSizeChanger: false }} />,
     },
   ];
 
@@ -435,8 +328,7 @@ function AdminReviewPage() {
           alignItems: "flex-end",
           justifyContent: "space-between",
           marginBottom: 24,
-        }}
-      >
+        }}>
         <div>
           <Title
             level={3}
@@ -444,22 +336,15 @@ function AdminReviewPage() {
               color: linear.text,
               marginBottom: 6,
               fontWeight: 600,
-            }}
-          >
+            }}>
             文档审核
           </Title>
-          <Text style={{ color: linear.textMuted, fontSize: 13 }}>
-            审核用户上传的文档，通过后将索引到向量知识库
-          </Text>
+          <Text style={{ color: linear.textMuted, fontSize: 13 }}>审核用户上传的文档，通过后将索引到向量知识库</Text>
         </div>
         <Button
           icon={<ReloadOutlined />}
-          onClick={() => {
-            if (activeTab === "pending") loadPending();
-            else loadAll(activeTab === "all" ? null : activeTab);
-          }}
-          style={{ height: 36 }}
-        >
+          onClick={loadAllData}
+          style={{ height: 36 }}>
           刷新
         </Button>
       </div>
@@ -471,22 +356,16 @@ function AdminReviewPage() {
           gridTemplateColumns: "repeat(4, 1fr)",
           gap: 16,
           marginBottom: 24,
-        }}
-      >
+        }}>
         <Card
           bordered={false}
           style={{
             background: "var(--ln-surface-1)",
             border: "1px solid var(--ln-hairline)",
             borderRadius: 8,
-          }}
-        >
+          }}>
           <Statistic
-            title={
-              <Text style={{ color: linear.textMuted, fontSize: 12 }}>
-                待审核
-              </Text>
-            }
+            title={<Text style={{ color: linear.textMuted, fontSize: 12 }}>待审核</Text>}
             value={pendingReviews.length}
             valueStyle={{
               color: linear.accent,
@@ -502,14 +381,9 @@ function AdminReviewPage() {
             background: "var(--ln-surface-1)",
             border: "1px solid var(--ln-hairline)",
             borderRadius: 8,
-          }}
-        >
+          }}>
           <Statistic
-            title={
-              <Text style={{ color: linear.textMuted, fontSize: 12 }}>
-                已通过
-              </Text>
-            }
+            title={<Text style={{ color: linear.textMuted, fontSize: 12 }}>已通过</Text>}
             value={stats.approved}
             valueStyle={{
               color: linear.success,
@@ -525,14 +399,9 @@ function AdminReviewPage() {
             background: "var(--ln-surface-1)",
             border: "1px solid var(--ln-hairline)",
             borderRadius: 8,
-          }}
-        >
+          }}>
           <Statistic
-            title={
-              <Text style={{ color: linear.textMuted, fontSize: 12 }}>
-                已拒绝
-              </Text>
-            }
+            title={<Text style={{ color: linear.textMuted, fontSize: 12 }}>已拒绝</Text>}
             value={stats.rejected}
             valueStyle={{
               color: linear.danger,
@@ -548,14 +417,9 @@ function AdminReviewPage() {
             background: "var(--ln-surface-1)",
             border: "1px solid var(--ln-hairline)",
             borderRadius: 8,
-          }}
-        >
+          }}>
           <Statistic
-            title={
-              <Text style={{ color: linear.textMuted, fontSize: 12 }}>
-                总记录
-              </Text>
-            }
+            title={<Text style={{ color: linear.textMuted, fontSize: 12 }}>总记录</Text>}
             value={stats.total}
             valueStyle={{
               color: linear.text,
@@ -575,8 +439,7 @@ function AdminReviewPage() {
           border: "1px solid var(--ln-hairline)",
           borderRadius: 8,
         }}
-        bodyStyle={{ padding: 0 }}
-      >
+        bodyStyle={{ padding: 0 }}>
         <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}
@@ -604,19 +467,15 @@ function AdminReviewPage() {
         okText="确认拒绝"
         cancelText="取消"
         okButtonProps={{ danger: true }}
-        confirmLoading={actionLoading === rejectModal.review?.id}
-      >
+        confirmLoading={actionLoading === rejectModal.review?.id}>
         <div style={{ marginBottom: 12 }}>
-          <Text style={{ color: linear.textMuted }}>
-            即将拒绝文档：
-          </Text>
+          <Text style={{ color: linear.textMuted }}>即将拒绝文档：</Text>
           <Text
             strong
             style={{
               color: linear.text,
               marginLeft: 4,
-            }}
-          >
+            }}>
             {rejectModal.review?.filename}
           </Text>
         </div>
@@ -626,18 +485,10 @@ function AdminReviewPage() {
             fontSize: 13,
             display: "block",
             marginBottom: 8,
-          }}
-        >
+          }}>
           拒绝原因（可选）：
         </Text>
-        <TextArea
-          value={rejectComment}
-          onChange={(e) => setRejectComment(e.target.value)}
-          placeholder="请输入拒绝原因，将记录在审核意见中..."
-          rows={3}
-          maxLength={500}
-          showCount
-        />
+        <TextArea value={rejectComment} onChange={(e) => setRejectComment(e.target.value)} placeholder="请输入拒绝原因，将记录在审核意见中..." rows={3} maxLength={500} showCount />
       </Modal>
     </div>
   );
