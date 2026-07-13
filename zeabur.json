@@ -1,0 +1,90 @@
+{
+  "$schema": "https://cdn.zeabur.com/zeabur.schema.json",
+  "project": "compose-yml",
+  "region": "auto",
+  "services": [
+    {
+      "name": "backend",
+      "path": "backend",
+      "dockerfile": "zeabur.Dockerfile",
+      "port": 8000,
+      "env": [
+        {
+          "key": "DEEPSEEK_API_KEY",
+          "type": "secret",
+          "description": "DeepSeek API Key for LLM"
+        },
+        {
+          "key": "DEEPSEEK_API_BASE",
+          "value": "https://api.deepseek.com"
+        },
+        {
+          "key": "DEEPSEEK_MODEL",
+          "value": "deepseek-chat"
+        },
+        {
+          "key": "EMBEDDING_MODEL",
+          "value": "BAAI/bge-small-zh-v1.5"
+        },
+        {
+          "key": "EMBEDDING_CACHE_DIR",
+          "value": "/app/models"
+        },
+        {
+          "key": "HF_HUB_OFFLINE",
+          "value": "1"
+        },
+        {
+          "key": "HF_HOME",
+          "value": "/app/models"
+        },
+        {
+          "key": "CHROMA_PERSIST_DIR",
+          "value": "/app/chroma_data"
+        },
+        {
+          "key": "DATABASE_URL",
+          "type": "database",
+          "service": "postgres",
+          "description": "PostgreSQL connection string provided by Zeabur"
+        }
+      ],
+      "domains": [
+        {
+          "name": "api",
+          "path": "/api"
+        }
+      ]
+    },
+    {
+      "name": "frontend",
+      "path": "frontend",
+      "dockerfile": "Dockerfile",
+      "port": 80,
+      "env": [
+        {
+          "key": "VITE_API_BASE_URL",
+          "value": "/api"
+        }
+      ],
+      "domains": [
+        {
+          "name": "web",
+          "path": "/"
+        }
+      ]
+    },
+    {
+      "name": "postgres",
+      "path": null,
+      "presets": "postgres",
+      "port": 5432,
+      "env": [
+        {
+          "key": "POSTGRES_DB",
+          "value": "compose_yml"
+        }
+      ]
+    }
+  ]
+}
