@@ -49,7 +49,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
                 <Route path="recent" element={<RecentPage />} />
                 <Route path="knowledge" element={<KnowledgePage />} />
                 <Route path="chat" element={<ChatPage />} />
-                <Route path="review" element={<AdminReviewPage />} />
+                <Route path="review" element={<ProtectedRoute requireRole="admin"><AdminReviewPage /></ProtectedRoute>} />
               </Route>
               <Route path="/" element={<Navigate to="/app" replace />} />
               <Route path="*" element={<Navigate to="/app" replace />} />

@@ -52,13 +52,6 @@ export default function LoginPage() {
     navigate("/app", { replace: true });
   };
 
-  const handleTest = () => {
-    fetch("api/auth/getUserInfo")
-      .then((response) => response.json())
-      .then((data) => console.log(data))
-      .catch((error) => console.error("Error:", error));
-  };
-
   return (
     <div style={styles.page}>
       <div className="login-aurora" />
@@ -119,7 +112,6 @@ export default function LoginPage() {
           <Button type="primary" htmlType="submit" size="large" block loading={submitting} icon={!submitting && <ArrowRightOutlined />} iconPosition="end" style={{ marginTop: 8, height: 44 }}>
             {submitting ? "登录中" : "登录"}
           </Button>
-          <Button onClick={handleTest}>TEST</Button>
         </Form>
 
         <Divider plain style={{ margin: "24px 0 16px", color: linear.textDim, fontSize: 12 }}>

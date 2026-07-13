@@ -1,9 +1,9 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Spin } from "antd";
+import { Result, Button, Spin } from "antd";
 
-export default function ProtectedRoute({ children }) {
-  const { hydrated, isAuthenticated, isGuest } = useAuth();
+export default function ProtectedRoute({ children, requireRole }) {
+  const { hydrated, isAuthenticated, isGuest, user } = useAuth();
   const location = useLocation();
 
   if (!hydrated) {
@@ -23,5 +23,29 @@ export default function ProtectedRoute({ children }) {
   if (!isAuthenticated && !isGuest) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
+
+  if (requireRole && isAuthenticated && user?.role !== requireRole) {
+    return (
+      <div style={{
+        minHeight: "calc(100vh - 56px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+      }}>
+        <Result
+          status="403"
+          title="无权访问"
+          subTitle={`该页面仅 ${requireRole === "admin" ? "管理员" : requireRole} 用户可访问`}
+          extra={
+            <Button type="primary" onClick={() => window.history.back()}>
+              返回
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
   return children;
 }

@@ -28,11 +28,11 @@ const navItems = [
 const secondaryItems = [
   { key: "/app/recent", icon: <ClockCircleOutlined />, label: "最近访问" },
   { key: "/app/knowledge", icon: <BookOutlined />, label: "知识库" },
-  { key: "/app/review", icon: <AuditOutlined />, label: "文档审核" },
+  { key: "/app/review", icon: <AuditOutlined />, label: "文档审核", adminOnly: true },
 ];
 
 export default function AppShell() {
-  const { user, isGuest, logout } = useAuth();
+  const { user, isGuest, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { modal } = AntApp.useApp();
@@ -119,11 +119,13 @@ export default function AppShell() {
             <Menu
               theme="dark"
               mode="inline"
-              items={secondaryItems.map((i) => ({
-                key: i.key,
-                icon: i.icon,
-                label: i.label,
-              }))}
+              items={secondaryItems
+                .filter((i) => !i.adminOnly || isAdmin)
+                .map((i) => ({
+                  key: i.key,
+                  icon: i.icon,
+                  label: i.label,
+                }))}
               onClick={({ key }) => navigate(key)}
               selectedKeys={[selectedKey]}
               style={{ background: "transparent", border: "none" }}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Table, Button, Tag, Space, Typography, App as AntApp, message as antdMessage, Modal, Input, Tabs, Avatar, Empty, Spin, Card, Statistic, Tooltip } from "antd";
+import { Table, Button, Tag, Space, Typography, App as AntApp, message as antdMessage, Modal, Input, Tabs, Avatar, Empty, Spin, Card, Statistic, Tooltip, Result } from "antd";
 import { CheckOutlined, CloseOutlined, FileTextOutlined, ClockCircleOutlined, UserOutlined, CalendarOutlined, ReloadOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
 import { listPendingReviews, listAllReviews, approveReview, rejectReview } from "@/services/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,9 +9,9 @@ const { Text, Title } = Typography;
 const { TextArea } = Input;
 
 function AdminReviewPage() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { modal, message: messageApi } = AntApp.useApp();
-  const reviewerId = user?.id || 1;
+  const reviewerId = user?.id;
 
   const [activeTab, setActiveTab] = useState("pending");
   const [pendingReviews, setPendingReviews] = useState([]);
@@ -46,8 +46,18 @@ function AdminReviewPage() {
   }, [reviewerId, messageApi]);
 
   useEffect(() => {
-    loadAllData();
-  }, [loadAllData]);
+    if (isAdmin) loadAllData();
+  }, [loadAllData, isAdmin]);
+
+  if (!isAdmin) {
+    return (
+      <Result
+        status="403"
+        title="无权访问"
+        subTitle="该页面仅管理员用户可访问"
+      />
+    );
+  }
 
   // 审批通过
   const handleApprove = async (review) => {

@@ -8,7 +8,7 @@ POST /auth/login     : 校验用户名/密码
 后续要扩展(jwt / session / 角色 / 找回密码)再迭代。
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
@@ -58,8 +58,24 @@ def login(payload: AuthPayload, db: Session = Depends(get_db)):
 
 
 @router.get("/getUserInfo", response_model=UserOut)
-def getUserInfo(db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == 8).first()
+def getUserInfo(
+    db: Session = Depends(get_db),
+    x_user_id: int | None = Header(default=None, alias="X-User-Id"),
+    user_id: int | None = Query(default=None),
+):
+    """返回当前登录用户的信息(含 role)。
+
+    优先从请求头 X-User-Id 读取;也兼容 ?user_id= 查询参数,
+    以便前端用 localStorage 中保存的用户 id 直接查询。
+    若都拿不到,返回 401。
+    """
+    uid = x_user_id if x_user_id is not None else user_id
+    if uid is None:
+        raise HTTPException(status_code=401, detail="未登录")
+
+    user = db.query(User).filter(User.id == uid).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
     return _serialize(user)
 
 
