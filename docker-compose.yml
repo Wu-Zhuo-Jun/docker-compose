@@ -38,18 +38,17 @@ services:
       retries: 3
       start_period: 60s
 
+  # 前端 docker 服务默认注释。
+  # 本地开发推荐直接：cd frontend && npm run dev（Vite 8002 端口，proxy 到 localhost:8000）
+  # 如需在 docker 中跑前端，请取消下方注释并修改 Dockerfile 端口（如改用 nginx build 模式）：
+  #
   # frontend:
   #   build:
   #     context: ./frontend
   #     dockerfile: Dockerfile
   #   container_name: react_frontend
   #   ports:
-  #     - "8002:8002"
-  #   volumes:
-  #     - ./frontend:/app
-  #     - /app/node_modules
-  #   environment:
-  #     - NODE_ENV=development
+  #     - "8002:80"
   #   networks:
   #     - app_network
 

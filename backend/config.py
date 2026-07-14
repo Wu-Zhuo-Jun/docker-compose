@@ -33,15 +33,19 @@ if not DEEPSEEK_API_KEY:
 
 os.environ["OPENAI_API_KEY"] = DEEPSEEK_API_KEY
 
-# # PostgreSQL 配置（用户认证）
+# PostgreSQL 配置
+# 本地 .env 有 DB_HOST=host.docker.internal / DB_PORT=5433 / DB_NAME=MyAgentApp（走宿主机）
+# Zeabur 上由 DATABASE_URL 环境变量整体覆盖，host/port/name 均以 DATABASE_URL 为准
 DB_HOST = os.getenv("DB_HOST", "postgres")
-DB_PORT = os.getenv("DB_PORT", "5433")
-DB_NAME = os.getenv("DB_NAME", "MyAgentApp")
+DB_PORT = os.getenv("DB_PORT", "5432")
+DB_NAME = os.getenv("DB_NAME", "compose_yml")
 DB_USER = os.getenv("DB_USER", "postgres")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 
-# # 数据库连接 URL
-DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+# 数据库连接 URL（Zeabur 会用 DATABASE_URL 环境变量覆盖此值）
+DATABASE_URL = os.getenv("DATABASE_URL") or (
+    f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+)
 
 # ChromaDB 配置
 CHROMA_HOST = os.getenv("VECTOR_DB_HOST", "chromadb")
