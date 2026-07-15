@@ -8,7 +8,7 @@
 compose-yml/
 ├── zeabur.json            # Zeabur 部署配置（前后端独立 service）
 ├── local/
-│   └── docker-compose.yml # 本地开发用 Docker Compose 配置
+│   └── compose.yml # 本地开发用 Docker Compose 配置
 ├── backend/
 │   ├── Dockerfile         # 后端镜像构建文件（Zeabur 部署）
 │   ├── zeabur.Dockerfile  # Zeabur 专用 Dockerfile
@@ -45,14 +45,14 @@ npm run dev
 ### Docker Compose 模式（本地完整环境）
 
 ```bash
-docker-compose -f local/docker-compose.yml up -d
+docker-compose -f local/compose.yml up -d
 ```
 
 ---
 
 ## Docker Compose 常用命令（本地完整环境）
 
-> 注意：使用 `docker-compose -f local/docker-compose.yml` 指定配置文件
+> 注意：使用 `docker-compose -f local/compose.yml` 指定配置文件
 
 ### 容器管理
 
@@ -86,7 +86,7 @@ docker rmi compose-yml-backend
 docker rmi -f compose-yml-backend
 
 # 重新构建镜像（不缓存）
-docker-compose -f local/docker-compose.yml build --no-cache
+docker-compose -f local/compose.yml build --no-cache
 ```
 
 ### 数据卷管理
@@ -103,10 +103,10 @@ docker volume prune
 
 ```bash
 # 停止并删除所有容器、网络（保留镜像和数据卷）
-docker-compose -f local/docker-compose.yml down
+docker-compose -f local/compose.yml down
 
 # 停止并删除所有资源（包括数据卷！）
-docker-compose -f local/docker-compose.yml down -v
+docker-compose -f local/compose.yml down -v
 
 # 删除已停止的容器、无用的镜像、悬挂的构建缓存
 docker system prune -a
