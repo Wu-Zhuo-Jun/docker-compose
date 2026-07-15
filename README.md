@@ -6,81 +6,65 @@
 
 ```
 compose-yml/
-├── docker-compose.yml      # Docker Compose 配置文件
+├── zeabur.json            # Zeabur 部署配置（前后端独立 service）
+├── local/
+│   └── docker-compose.yml # 本地开发用 Docker Compose 配置
 ├── backend/
-│   ├── Dockerfile           # 后端镜像构建文件
-│   ├── main.py              # FastAPI 主应用
-│   ├── requirements.txt     # Python 依赖
-│   └── fastapi_project/     # FastAPI 完整项目（备用）
-└── README.md
+│   ├── Dockerfile         # 后端镜像构建文件（Zeabur 部署）
+│   ├── zeabur.Dockerfile  # Zeabur 专用 Dockerfile
+│   ├── main.py            # FastAPI 主应用
+│   └── requirements.txt   # Python 依赖
+└── frontend/              # React + Vite 前端
 ```
 
-## 快速开始
+## Zeabur 部署
 
-### 1. 启动所有服务
+本项目配置为 Zeabur 多 service 部署（backend、frontend、postgres 三个独立 service）。
+部署后自动生成独立域名，backend 路径 `/api`，frontend 路径 `/`。
 
+## 本地开发
+
+### 前后端分离模式（推荐）
+
+**后端**：
 ```bash
-docker-compose up -d
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
 ```
 
-### 2. 查看服务状态
-
+**前端**：
 ```bash
-docker-compose ps
+cd frontend
+npm install
+npm run dev
 ```
 
-### 3. 查看日志
+前端访问 http://localhost:5173，API 请求自动代理到 http://localhost:8000
+
+### Docker Compose 模式（本地完整环境）
 
 ```bash
-# 查看所有服务日志
-docker-compose logs
-
-# 实时查看后端日志
-docker-compose logs -f backend
-
-# 查看 ChromaDB 日志
-docker-compose logs -f chromadb
-
-# 查看最近 50 行日志
-docker-compose logs --tail=50 backend
-```
-
-### 4. 停止服务
-
-```bash
-docker-compose down
-```
-
-### 5. 重启服务
-
-```bash
-docker-compose restart
-```
-
-### 6. 重新构建并启动
-
-```bash
-docker-compose down && docker-compose up -d --build
+docker-compose -f local/docker-compose.yml up -d
 ```
 
 ---
 
-## Docker 常用命令
+## Docker Compose 常用命令（本地完整环境）
+
+> 注意：使用 `docker-compose -f local/docker-compose.yml` 指定配置文件
 
 ### 容器管理
 
 ```bash
 # 进入容器内部
-docker exec -it fastapi_backend /bin/sh
-
-# 进入 ChromaDB 容器
-docker exec -it chromadb_service /bin/sh
+docker exec -it compose-yml_backend_1 /bin/sh
 
 # 停止容器
-docker stop fastapi_backend
+docker stop compose-yml_backend_1
 
 # 启动容器
-docker start fastapi_backend
+docker start compose-yml_backend_1
 
 # 查看运行中的容器
 docker ps
@@ -102,7 +86,7 @@ docker rmi compose-yml-backend
 docker rmi -f compose-yml-backend
 
 # 重新构建镜像（不缓存）
-docker-compose build --no-cache
+docker-compose -f local/docker-compose.yml build --no-cache
 ```
 
 ### 数据卷管理
@@ -111,34 +95,18 @@ docker-compose build --no-cache
 # 查看所有数据卷
 docker volume ls
 
-# 查看 ChromaDB 数据卷信息
-docker volume inspect compose-yml_chroma_data
-
-# 查看数据卷在主机上的实际路径
-docker volume inspect compose-yml_chroma_data --format '{{ .Mountpoint }}'
-
 # 删除未使用的数据卷
 docker volume prune
-```
-
-### 网络管理
-
-```bash
-# 查看网络
-docker network ls
-
-# 查看项目网络详情
-docker network inspect compose-yml_app_network
 ```
 
 ### 清理
 
 ```bash
 # 停止并删除所有容器、网络（保留镜像和数据卷）
-docker-compose down
+docker-compose -f local/docker-compose.yml down
 
 # 停止并删除所有资源（包括数据卷！）
-docker-compose down -v
+docker-compose -f local/docker-compose.yml down -v
 
 # 删除已停止的容器、无用的镜像、悬挂的构建缓存
 docker system prune -a
