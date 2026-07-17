@@ -19,7 +19,6 @@
     "@types/react": "^18.2.64",
     "@types/react-dom": "^18.2.21",
     "@vitejs/plugin-react": "^4.2.1",
-    "babel-plugin-import": "^1.13.8",
     "vite": "^5.1.4",
     "vite-plugin-compression": "^0.5.1"
   }

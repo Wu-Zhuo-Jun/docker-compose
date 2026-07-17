@@ -8,20 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [
-    react({
-      babel: {
-        plugins: [
-          [
-            "babel-plugin-import",
-            {
-              libraryName: "antd",
-              libraryDirectory: "es",
-              style: false,
-            },
-          ],
-        ],
-      },
-    }),
+    react(),
     // 生成 gzip 压缩文件
     viteCompression({
       algorithm: "gzip",
