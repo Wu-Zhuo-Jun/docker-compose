@@ -29,8 +29,15 @@ FROM nginx:1.27-alpine
 # 移除 nginx 默认配置
 RUN rm -f /etc/nginx/conf.d/default.conf
 
+# 安装 envsubst（busybox 默认已有，但 alpine 镜像里需要 gettext）
+RUN apk add --no-cache gettext
+
 # 拷贝自定义 nginx 配置
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# 拷贝 entrypoint 脚本（用于启动前注入环境变量）
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 # 从构建阶段拷贝 dist 产物
 COPY --from=builder /app/dist /usr/share/nginx/html
@@ -42,5 +49,4 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget -q -O- http://127.0.0.1/ >/dev/null 2>&1 || exit 1
 
-# nginx 镜像默认 CMD 已包含 nginx -g "daemon off;"
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["/docker-entrypoint.sh"]

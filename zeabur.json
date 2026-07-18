@@ -65,6 +65,10 @@
         {
           "key": "VITE_API_BASE_URL",
           "value": "/api"
+        },
+        {
+          "key": "API_UPSTREAM",
+          "value": "http://backend-themus.zeabur.internal:8000"
         }
       ],
       "domains": [
