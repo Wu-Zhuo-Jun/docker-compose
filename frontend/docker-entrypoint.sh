@@ -5,7 +5,7 @@
 set -e
 
 # 缺省值（本地 docker-compose 使用）
-DEFAULT_UPSTREAM="http://backend:8000"
+DEFAULT_UPSTREAM="http://backend-themus.zeabur.internal:8000"
 
 # Zeabur 会注入 API_UPSTREAM 环境变量；优先用它，没有则用默认值
 UPSTREAM="${API_UPSTREAM:-${DEFAULT_UPSTREAM}}"
