@@ -28,7 +28,10 @@ RUN --mount=type=cache,target=/root/.cache,sharing=locked \
     python -c "from langchain_huggingface import HuggingFaceEmbeddings; HuggingFaceEmbeddings(model_name='BAAI/bge-small-zh-v1.5', cache_folder='/app/models', model_kwargs={'device':'cpu'}, encode_kwargs={'normalize_embeddings': True})"
 
 # 从项目根目录构建时，只复制 backend/ 下的源码
-COPY backend/ /app/
+COPY . /app/
+
+# 调试：列出 /app 内容，确认文件结构
+RUN ls -la /app/ && echo "=== /app/routers exists? ===" && ls /app/routers/ 2>&1 || echo "routers NOT FOUND"
 
 RUN mkdir -p /app/chroma_data && chown -R appuser:appgroup /app
 
