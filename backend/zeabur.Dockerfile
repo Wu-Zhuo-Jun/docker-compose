@@ -1,9 +1,11 @@
 # syntax=docker/dockerfile:1.7
 # Zeabur 专用后端 Dockerfile
+# Build context 必须是项目根目录（与 zeabur.json 同级）
+# 在 backend/ 目录下执行: zeabur.yml deploy --project-dir ..
 FROM python:3.10-slim AS builder
 WORKDIR /app
 
-COPY requirements.txt .
+COPY backend/requirements.txt .
 
 RUN pip install --no-cache-dir uv
 
@@ -25,7 +27,8 @@ RUN --mount=type=cache,target=/root/.cache,sharing=locked \
     mkdir -p /app/models && \
     python -c "from langchain_huggingface import HuggingFaceEmbeddings; HuggingFaceEmbeddings(model_name='BAAI/bge-small-zh-v1.5', cache_folder='/app/models', model_kwargs={'device':'cpu'}, encode_kwargs={'normalize_embeddings': True})"
 
-COPY --chown=appuser:appgroup . .
+# 从项目根目录构建时，只复制 backend/ 下的源码
+COPY backend/ /app/
 
 RUN mkdir -p /app/chroma_data && chown -R appuser:appgroup /app
 
