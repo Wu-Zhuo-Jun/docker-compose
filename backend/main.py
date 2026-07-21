@@ -45,7 +45,6 @@ def verify_dependencies():
         raise
 
     try:
-        # Chroma 包装类没 heartbeat,直接用底层 PersistentClient
         chroma = get_chroma_client()
         underlying = getattr(chroma, "_client", None) or getattr(chroma, "client", None)
         if underlying is None:

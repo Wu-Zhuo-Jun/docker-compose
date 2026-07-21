@@ -31,16 +31,32 @@
           "value": "/app/models"
         },
         {
-          "key": "HF_HUB_OFFLINE",
-          "value": "1"
-        },
-        {
           "key": "HF_HOME",
           "value": "/app/models"
         },
         {
           "key": "CHROMA_PERSIST_DIR",
           "value": "/app/chroma_data"
+        },
+        {
+          "key": "DB_HOST",
+          "value": "postgres"
+        },
+        {
+          "key": "DB_PORT",
+          "value": "5432"
+        },
+        {
+          "key": "DB_NAME",
+          "value": "zeabur"
+        },
+        {
+          "key": "DB_USER",
+          "value": "root"
+        },
+        {
+          "key": "DB_PASSWORD",
+          "value": "dwbzL98K3Z65GRjf7Q2EVYyc41H0nCSB"
         },
         {
           "key": "DATABASE_URL",
@@ -68,7 +84,7 @@
         },
         {
           "key": "API_UPSTREAM",
-          "value": "http://backend-themus.zeabur.internal:8000"
+          "value": "http://backend.zeabur.internal:8000"
         }
       ],
       "domains": [
@@ -86,7 +102,7 @@
       "env": [
         {
           "key": "POSTGRES_DB",
-          "value": "compose_yml"
+          "value": "zeabur"
         }
       ]
     }
