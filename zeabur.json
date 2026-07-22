@@ -39,30 +39,8 @@
           "value": "/app/chroma_data"
         },
         {
-          "key": "DB_HOST",
-          "value": "${POSTGRES_HOST}"
-        },
-        {
-          "key": "DB_PORT",
-          "value": "${POSTGRES_PORT}"
-        },
-        {
-          "key": "DB_NAME",
-          "value": "${POSTGRES_DATABASE}"
-        },
-        {
-          "key": "DB_USER",
-          "value": "${POSTGRES_USERNAME}"
-        },
-        {
-          "key": "DB_PASSWORD",
-          "value": "${POSTGRES_PASSWORD}"
-        },
-        {
           "key": "DATABASE_URL",
-          "type": "database",
-          "service": "postgres",
-          "description": "PostgreSQL connection string provided by Zeabur"
+          "value": "postgresql://root:dwbzL98K3Z65GRjf7Q2EVYyc41H0nCSB@postgresql.zeabur.internal:5432/zeabur"
         }
       ],
       "domains": [
