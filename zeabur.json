@@ -40,23 +40,23 @@
         },
         {
           "key": "DB_HOST",
-          "value": "postgres"
+          "value": "${POSTGRES_HOST}"
         },
         {
           "key": "DB_PORT",
-          "value": "5432"
+          "value": "${POSTGRES_PORT}"
         },
         {
           "key": "DB_NAME",
-          "value": "zeabur"
+          "value": "${POSTGRES_DATABASE}"
         },
         {
           "key": "DB_USER",
-          "value": "root"
+          "value": "${POSTGRES_USERNAME}"
         },
         {
           "key": "DB_PASSWORD",
-          "value": "dwbzL98K3Z65GRjf7Q2EVYyc41H0nCSB"
+          "value": "${POSTGRES_PASSWORD}"
         },
         {
           "key": "DATABASE_URL",
