@@ -58,7 +58,7 @@ pnpm-debug.log*
 .dockerignore
 
 # Local development (exclude from Zeabur detection)
-local/
+# local/
 
 # Logs
 *.log

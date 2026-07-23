@@ -19,10 +19,24 @@ compose-yml/
 
 ## Zeabur 部署
 
-本项目配置为 Zeabur 多 service 部署（backend、frontend、postgres 三个独立 service）。
-部署后自动生成独立域名，backend 路径 `/api`，frontend 路径 `/`。
+### ⚠️ 重要说明
 
-## 本地开发
+本项目配置为 Zeabur 多 service 部署（backend、frontend、postgres 三个独立 service）。
+
+**部署方式**：在 Zeabur Dashboard 手动创建三个服务：
+1. **backend**：Root Directory 设为 `backend`，Dockerfile 选 `Dockerfile`
+2. **frontend**：Root Directory 设为 `frontend`，Dockerfile 选 `Dockerfile`
+3. **postgres**：选 PostgreSQL preset
+
+### 部署后配置
+
+1. 在 backend 服务中添加环境变量 `DEEPSEEK_API_KEY`
+2. 配置域名：
+   - backend：`/api` 路径
+   - frontend：`/` 路径
+3. 给 backend 服务挂载持久卷（用于 ChromaDB 数据）
+
+### 本地开发
 
 ### 前后端分离模式（推荐）
 
@@ -43,6 +57,8 @@ npm run dev
 前端访问 http://localhost:5173，API 请求自动代理到 http://localhost:8000
 
 ### Docker Compose 模式（本地完整环境）
+
+> 注意：`local/compose.yml` 不在 Git 追踪范围内。如需使用，请手动创建或从项目历史中恢复。
 
 ```bash
 docker-compose -f local/compose.yml up -d
@@ -175,8 +191,8 @@ curl http://localhost:8000/vector-db-info
 
 ```bash
 # 查看详细日志
-docker-compose logs backend
-docker-compose logs chromadb
+docker-compose -f local/compose.yml logs backend
+docker-compose -f local/compose.yml logs chromadb
 ```
 
 ### 2. 端口冲突
