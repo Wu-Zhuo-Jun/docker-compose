@@ -40,7 +40,7 @@
         },
         {
           "key": "DATABASE_URL",
-          "value": "postgresql://root:dwbzL98K3Z65GRjf7Q2EVYyc41H0nCSB@postgresql.zeabur.internal:5432/zeabur"
+          "value": "postgresql://root:1tLU09v3PuedfHCqQN82raM5Jg74j6wG@postgresql-hotial.zeabur.internal:5432/zeabur"
         }
       ],
       "domains": [
