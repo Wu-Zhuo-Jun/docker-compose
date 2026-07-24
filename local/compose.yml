@@ -1,21 +1,20 @@
 services:
   backend:
     build:
-      context: ./backend
+      context: ../backend
       dockerfile: Dockerfile
     container_name: fastapi_backend
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app
+      - ../backend:/app
       - chroma_data:/app/chroma_data
       - embedding_models:/app/models
     env_file:
-      - .env
+      - ../.env
     environment:
       - CHROMA_PERSIST_DIR=/app/chroma_data
       - EMBEDDING_CACHE_DIR=/app/models
-      - HF_HUB_OFFLINE=1
       - HF_HOME=/app/models
     networks:
       - app_network

@@ -6,7 +6,7 @@
     {
       "name": "backend",
       "path": "backend",
-      "dockerfile": "zeabur.Dockerfile",
+      "dockerfile": "backend.Dockerfile",
       "port": 8000,
       "env": [
         {

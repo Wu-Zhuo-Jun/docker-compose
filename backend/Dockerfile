@@ -25,15 +25,32 @@ WORKDIR /app
 COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# 模型在最终阶段下载 预先下载 embedding 模型到 /app/models，与运行时 HF_HOME / EMBEDDING_CACHE_DIR 保持一致
-# BuildKit cache mount: reuse HuggingFace hub cache across builds.
-RUN --mount=type=cache,target=/root/.cache/huggingface,sharing=locked \
-    mkdir -p /app/models && \
-    python -c "from langchain_huggingface import HuggingFaceEmbeddings; HuggingFaceEmbeddings(model_name='BAAI/bge-small-zh-v1.5', cache_folder='/app/models', model_kwargs={'device':'cpu'}, encode_kwargs={'normalize_embeddings': True})"
+# 创建模型目录（模型在容器启动时通过 entrypoint 脚本从镜像下载）
+RUN mkdir -p /app/models
+
+# 如果有本地模型缓存卷，可以在启动时直接挂载
+# 模型会在运行时下载到 /app/models
 
 COPY main.py .
 
+# 创建启动脚本（模型只在不存在时下载一次）
+RUN printf '#!/bin/bash\n\
+echo "[entrypoint] 检查 embedding 模型..."\n\
+export HF_ENDPOINT="https://hf-mirror.com"\n\
+export HF_HUB_OFFLINE=0\n\
+MODEL_PATH="/app/models/models--BAAI--bge-small-zh-v1.5"\n\
+if [ -d "$MODEL_PATH" ] && [ -n "$(ls -A $MODEL_PATH 2>/dev/null)" ]; then\n\
+    echo "[entrypoint] 模型已存在，跳过下载"\nelse\n\
+    echo "[entrypoint] 正在下载 embedding 模型..."\n\
+    python -c "from huggingface_hub import snapshot_download; snapshot_download('\''BAAI/bge-small-zh-v1.5'\'', cache_dir='\''/app/models'\'')"\n\
+    if [ $? -ne 0 ]; then\n\
+        echo "[entrypoint] 模型下载失败，尝试备用源..."\n\
+        python -c "from huggingface_hub import snapshot_download; snapshot_download('\''BAAI/bge-small-zh-v1.5'\'', cache_dir='\''/app/models'\'', endpoint='\''https://huggingface.co'\'')" || true\n\
+    fi\n\
+fi\necho "[entrypoint] 启动 FastAPI 服务..."\n\
+exec uvicorn main:app --host 0.0.0.0 --port 8000 --reload\n' > /entrypoint.sh && chmod +x /entrypoint.sh
+
 # 暴露端口
 EXPOSE 8000
-# 启动命令
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# 使用启动脚本（自动下载模型）
+CMD ["/entrypoint.sh"]
